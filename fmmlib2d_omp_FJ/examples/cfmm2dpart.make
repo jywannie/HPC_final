@@ -3,7 +3,7 @@ PROJECT=int2         # for historical reasons we always like to
                      # something more descriptive
 
 ###HOST=windows
-HOST=linux-gfortran
+HOST=linux-gfortran-openmp
 ###HOST=macosx
 
 

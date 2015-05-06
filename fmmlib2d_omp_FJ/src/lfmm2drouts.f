@@ -211,13 +211,26 @@ c
 c       ... step 3, merge all multipole expansions
 c       
 ccc         do 2200 ibox=nboxes,1,-1
-         do 2300 ilev=nlev,3,-1
-C$OMP PARALLEL DO DEFAULT(SHARED)
+
+
+
+
+
+C$OMP PARALLEL DEFAULT(SHARED)
 C$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
 C$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
 C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,cd) 
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(4) 
+C$OMP$PRIVATE(list,nlists,nlist,itype)
+C$OMP$PRIVATE(ifdirect2)
+C$OMP$PRIVATE(htemp,ilist)
+C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
+
+         do 2300 ilev=nlev,3,-1
+
+
+C$OMP DO SCHEDULE(DYNAMIC)
+
+
          do 2200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
 c
          call d2tgetb(ier,ibox,box,center0,corners0,wlists)
@@ -280,7 +293,12 @@ c
             endif
          endif
  2200    continue
-C$OMP END PARALLEL DO
+
+
+C$OMP END DO
+
+
+
  2300    continue
 c
 c
@@ -329,13 +347,7 @@ c
         do 4300 ilev=3,nlev+1
 c        t3=second()
 cC$        t3=omp_get_wtime()
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level0,list,nlists,nlist,itype)
-C$OMP$PRIVATE(jbox,box1,center1,corners1,level1,ifdirect2,radius)
-C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,htemp,cd,ilist)
-C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
-C$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(1)
+C$OMP DO SCHEDULE(DYNAMIC)
         do 4200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
         call d2tgetb(ier,ibox,box,center0,corners0,wlists)
         if (ifprint .ge. 2) then
@@ -449,7 +461,7 @@ c     $           nterms_trunc)
  4150       continue
         endif
  4200   continue
-C$OMP END PARALLEL DO
+C$OMP END DO
 c        t4=second()
 cC$        t4=omp_get_wtime()
 c        write(*,*) 'level ', ilev, ' time in list2:', t4-t3
@@ -472,11 +484,14 @@ c       ... step 5, split all local expansions
 c
 ccc        do 5200 ibox=1,nboxes
         do 5300 ilev=3,nlev
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
-C$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
-C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,cd) 
-cccC$OMP$SCHEDULE(DYNAMIC)
+
+
+
+
+C$OMP DO SCHEDULE(DYNAMIC)
+
+
+
 cccC$OMP$NUM_THREADS(4) 
         do 5200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
 c
@@ -536,7 +551,7 @@ c
             endif
         endif
  5200   continue
-C$OMP END PARALLEL DO
+C$OMP END DO
  5300   continue
 c       
         t2=second()
@@ -544,6 +559,10 @@ C$        t2=omp_get_wtime()
 ccc     call prin2('time=*',t2-t1,1)
         timeinfo(5)=t2-t1
 c
+
+C$OMP END PARALLEL
+
+
         return
         end
 c

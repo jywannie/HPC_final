@@ -172,3 +172,15 @@ c           that are adjacent to the box ibox - the list of colleagues
   
 
 
+
+
+
+
+
+C$OMP$PRIVATE(level,npts,nkids,)
+
+C$OMP$PRIVATE(list,nlists,nlist,itype)
+C$OMP$PRIVATE(ifdirect2,)
+C$OMP$PRIVATE(htemp,ilist)
+C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
+
