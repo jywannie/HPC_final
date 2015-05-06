@@ -52,10 +52,10 @@ c
         d=hkrand(0)
         do i=1,nsource
         phi=hkrand(0)*2*pi
-        source(1,i)=cos(phi)
-        source(2,i)=sin(phi)
-ccc        source(1,i)=hkrand(0)
-ccc        source(2,i)=hkrand(0)
+ccc        source(1,i)=cos(phi)
+ccc        source(2,i)=sin(phi)
+        source(1,i)=hkrand(0)
+        source(2,i)=hkrand(0)
         enddo
 c
 c
@@ -64,10 +64,10 @@ c
         ntarget=nsource*1
         do i=1,ntarget
         phi=hkrand(0)*2*pi
-        target(1,i)=cos(phi) + 3
-        target(2,i)=sin(phi)
-ccc        target(1,i)=hkrand(0) + 3
-ccc        target(2,i)=hkrand(0)
+ccc        target(1,i)=cos(phi) + 3
+ccc        target(2,i)=sin(phi)
+        target(1,i)=hkrand(0) + 3
+        target(2,i)=hkrand(0)
 c
         enddo
 c

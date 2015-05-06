@@ -1231,6 +1231,8 @@ c
         real *8 z(2,1),ztarg(2,1),center0(2),center(2)
         data jjsons/1,1,2,2/,
      1      iisons/1,2,1,2/
+c       SUNLI
+        integer unif_max_level
 ccc        save
 c
 c        this subroutine constructs a quad-tree corresponding
@@ -1407,6 +1409,20 @@ c
         maxlev=198
         if( maxlevel .le. maxlev ) maxlev=maxlevel
 
+c       SUNLI: In order to make oct-tree uniform, set a unif_max_level
+c              so that the only refinement condition is that 
+c                     level <= unif_max_level
+c              Notice that a necessary condition for unif_max_level is
+c                 minlevel <= unif_max_level <= maxlev - 1
+
+        unif_max_level = 5
+        do 1275 i = 1, 4
+          if (unif_max_level .LE. minlevel) 
+            unif_max_level = unif_max_level + 5
+          endif
+ 1275 continue
+
+
 c
         ison=1
         nlev=0
@@ -1445,8 +1461,9 @@ cccc        endif
 c
 c       ... refine on both sources and targets
 c       SUNLI: CHANGE HERE IF YOU WANT TO MAKE IT A FULL OCT TREE
-        if(numpdad .le. nbox .and. numtdad .le. nbox .and.
-     $     level .ge. minlevel ) goto 2000
+c        if(numpdad .le. nbox .and. numtdad .le. nbox .and.
+c     $     level .ge. minlevel ) goto 2000
+          if(level .ge. unif_max_level) goto 2000
 c
 c       
 c       ... not a leaf node on sources or targets
