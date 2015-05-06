@@ -124,7 +124,7 @@ c           that are adjacent to the box ibox - the list of colleagues
 
 -1 Tools
 
-[d2tgetb]
+[d2tgetb] returns box center, box corner
 
 
 0 Construct FMM tree structure 
