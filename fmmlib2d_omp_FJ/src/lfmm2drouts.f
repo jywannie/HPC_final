@@ -1022,7 +1022,6 @@ C$OMP END DO NOWAIT
 
 
 
-C$OMP BARRIER
 
 
 
@@ -1034,6 +1033,14 @@ ccc        write(*,*) 'time in list2:', second()-t1
 ccc        write(*,*) 'ntops:', ntops
 ccc        write(*,*) 'speed:', ntops/(second()-t1)
  4300   continue
+
+
+
+
+C$OMP BARRIER
+
+
+
 c
         t2=second()
 C$        t2=omp_get_wtime()
