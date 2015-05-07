@@ -679,6 +679,7 @@ C$OMP$PRIVATE(list,nlists,nlist,itype)
 C$OMP$PRIVATE(ifdirect2)
 C$OMP$PRIVATE(htemp,ilist)
 C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
+C$OMP$PRIVATE(ibox2) 
 
 
          do 2300 ilev=nlev,3,-1
@@ -751,7 +752,7 @@ c
  2200    continue
 
 
-C$OMP END DO NOWAIT
+C$OMP END DO
 
 
 
@@ -802,13 +803,13 @@ c
 c       ... step 8, evaluate direct interactions 
 c
 C$OMP DO SCHEDULE(DYNAMIC)
-        do 3202 ibox=1,nboxes
+        do 3202 ibox2=1,nboxes
 c
-        call d2tgetb(ier,ibox,box,center0,corners0,wlists)
+        call d2tgetb(ier,ibox2,box,center0,corners0,wlists)
         call d2tnkids(box,nkids)
 c
         if (ifprint .ge. 2) then
-           call prinf('ibox=*',ibox,1)
+           call prinf('ibox2=*',ibox2,1)
            call prinf('box=*',box,15)
            call prinf('nkids=*',nkids,1)
         endif
@@ -838,7 +839,7 @@ c
 c       ... evaluate interactions with the nearest neighbours
 c
         itype=1
-        call d2tgetl(ier,ibox,itype,list,nlist,wlists)
+        call d2tgetl(ier,ibox2,itype,list,nlist,wlists)
         if (ifprint .ge. 2) call prinf('list1=*',list,nlist)
 c
 c       ... for all pairs in list #1, 
@@ -862,7 +863,7 @@ c
         endif
 c
  3202   continue
-C$OMP END DO
+C$OMP END DO NOWAIT
 c
 ccc        call prin2('inside fmm, pot=*',pot,2*nsource)
 ccc        call prin2('inside fmm, grad=*',grad,2*nsource)
@@ -880,7 +881,6 @@ ccc        call prinf('=== DOWNWARD PASS COMPLETE ===*',i,0)
 
 
 
-C$OMP BARRIER
 
 
 
@@ -1017,7 +1017,16 @@ c     $           nterms_trunc)
  4150       continue
         endif
  4200   continue
-C$OMP END DO
+C$OMP END DO NOWAIT
+
+
+
+
+C$OMP BARRIER
+
+
+
+
 c        t4=second()
 cC$        t4=omp_get_wtime()
 c        write(*,*) 'level ', ilev, ' time in list2:', t4-t3

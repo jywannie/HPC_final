@@ -44,6 +44,7 @@ OBJSUF=o
 MODSUF=mod
 FC=gfortran -c 
 FFLAGS=-O3 --openmp
+#FLINK=gfortran -o $(PROJECT) --openmp
 FLINK=gfortran -o $(PROJECT) --openmp -Wl,-stack_size,0x40000000
 ### export OMP_NUM_THREADS=4
 ### export OMP_STACKSIZE=1024M
