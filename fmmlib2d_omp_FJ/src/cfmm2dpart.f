@@ -938,7 +938,11 @@ c
         call lfmm2d_list2_hideP2T
      $     (bsize,nlev,laddr,scale,nterms,rmlexp,iaddr,epsfmm,
      $     timeinfo,wlists,mptemp,lmptemp,
-     $     ifprune_list2)
+     $     ifprune_list2,
+     $     nboxes,sourcesort,isource,ifcharge,chargesort,ifdipole,
+     $     dipstrsort,ifpot,pot,ifgrad,grad,ifhess,hess,
+     $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
+     $     ifhesstarg,hesstarg,ifevalloc)
 c
         if(ifprint .ge. 1)
      $     call prinf('=== STEP 6 (eval mp) ====*',i,0)
@@ -1099,98 +1103,98 @@ c
  8000   continue
 c
 c
-        if( ifevalloc .eq. 0 ) goto 9000
+ccccc        if( ifevalloc .eq. 0 ) goto 9000
 c 
-        if(ifprint .ge. 1)
-     $     call prinf('=== STEP 8 (direct) =====*',i,0)
-        t1=second()
-C$        t1=omp_get_wtime()
+ccccc        if(ifprint .ge. 1)
+ccccc    $     call prinf('=== STEP 8 (direct) =====*',i,0)
+ccccc       t1=second()
+cccccCC$        t1=omp_get_wtime()
 c
 c       ... step 8, evaluate direct interactions 
 c
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,nkids,list,nlist,npts)
-C$OMP$PRIVATE(jbox,box1,center1,corners1)
-C$OMP$PRIVATE(ier,ilist,itype) 
-C$OMP$SCHEDULE(DYNAMIC)
+cccccC$OMP PARALLEL DO DEFAULT(SHARED)
+cccccCC$OMP$PRIVATE(ibox,box,center0,corners0,nkids,list,nlist,npts)
+cccccCC$OMP$PRIVATE(jbox,box1,center1,corners1)
+cccccCC$OMP$PRIVATE(ier,ilist,itype) 
+cccccCC$OMP$SCHEDULE(DYNAMIC)
 cccC$OMP$NUM_THREADS(1) 
-        do 6202 ibox=1,nboxes
+ccccc       do 6202 ibox=1,nboxes
 c
-        call d2tgetb(ier,ibox,box,center0,corners0,wlists)
-        call d2tnkids(box,nkids)
+ccccc       call d2tgetb(ier,ibox,box,center0,corners0,wlists)
+ccccc       call d2tnkids(box,nkids)
 c
-        if (ifprint .ge. 2) then
-           call prinf('ibox=*',ibox,1)
-           call prinf('box=*',box,15)
-           call prinf('nkids=*',nkids,1)
-        endif
+ccccc       if (ifprint .ge. 2) then
+ccccc          call prinf('ibox=*',ibox,1)
+ccccc          call prinf('box=*',box,15)
+ccccc          call prinf('nkids=*',nkids,1)
+ccccc       endif
 c
-        if (nkids .eq. 0) then
-            npts=box(10)
-            if (ifprint .ge. 2) then
-               call prinf('npts=*',npts,1)
-               call prinf('isource=*',isource(box(9)),box(10))
-            endif
-        endif
+ccccc       if (nkids .eq. 0) then
+ccccc            npts=box(10)
+ccccc            if (ifprint .ge. 2) then
+ccccc               call prinf('npts=*',npts,1)
+ccccc               call prinf('isource=*',isource(box(9)),box(10))
+ccccc            endif
+ccccc        endif
 c
 c
-        if (nkids .eq. 0) then
+ccccc        if (nkids .eq. 0) then
 c
 c       ... evaluate self interactions
 c
-        call cfmm2dpart_direct_self_sym(box,sourcesort,
-     $     ifcharge,chargesort,ifdipole,dipstrsort,
-     $     ifpot,pot,ifgrad,grad,ifhess,hess,
-     $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
-     $     ifhesstarg,hesstarg)
+ccccc        call cfmm2dpart_direct_self_sym(box,sourcesort,
+ccccc     $     ifcharge,chargesort,ifdipole,dipstrsort,
+ccccc     $     ifpot,pot,ifgrad,grad,ifhess,hess,
+ccccc     $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
+ccccc     $     ifhesstarg,hesstarg)
 c
 c
 c       ... retrieve list #1
 c
 c       ... evaluate interactions with the nearest neighbours
 c
-        itype=1
-        call d2tgetl(ier,ibox,itype,list,nlist,wlists)
-        if (ifprint .ge. 2) call prinf('list1=*',list,nlist)
+ccccc        itype=1
+ccccc        call d2tgetl(ier,ibox,itype,list,nlist,wlists)
+ccccc        if (ifprint .ge. 2) call prinf('list1=*',list,nlist)
 c
 c       ... for all pairs in list #1, 
 c       evaluate the potentials and gradients directly
 c
-            do 6203 ilist=1,nlist
-               jbox=list(ilist)
-               call d2tgetb(ier,jbox,box1,center1,corners1,wlists)
+ccccc            do 6203 ilist=1,nlist
+ccccc               jbox=list(ilist)
+ccccc               call d2tgetb(ier,jbox,box1,center1,corners1,wlists)
 c
 c       ... prune all sourceless boxes
 c
-         if( box1(10) .eq. 0 ) goto 6203
+ccccc         if( box1(10) .eq. 0 ) goto 6203
 c    
-            call cfmm2dpart_direct(box1,box,sourcesort,
-     $         ifcharge,chargesort,ifdipole,dipstrsort,
-     $         ifpot,pot,ifgrad,grad,ifhess,hess,
-     $         targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
-     $         ifhesstarg,hesstarg)
+ccccc            call cfmm2dpart_direct(box1,box,sourcesort,
+ccccc     $         ifcharge,chargesort,ifdipole,dipstrsort,
+ccccc     $         ifpot,pot,ifgrad,grad,ifhess,hess,
+ccccc     $         targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
+ccccc     $         ifhesstarg,hesstarg)
 c
- 6203       continue
-        endif
+ccccc 6203       continue
+ccccc        endif
 c
- 6202   continue
-C$OMP END PARALLEL DO
+ccccc 6202   continue
+cccccCC$OMP END PARALLEL DO
 c
 ccc        call prin2('inside fmm, pot=*',pot,2*nsource)
 ccc        call prin2('inside fmm, grad=*',grad,2*nsource)
 ccc        call prin2('inside fmm, hess=*',hess,2*nsource)
 c
 c
-        t2=second()
-C$        t2=omp_get_wtime()
+ccccc        t2=second()
+cccccCC$        t2=omp_get_wtime()
 ccc     call prin2('time=*',t2-t1,1)
-        timeinfo(8)=t2-t1
+ccccc        timeinfo(8)=t2-t1
 c
- 9000   continue
+ccccc 9000   continue
 c
 ccc        call prinf('=== DOWNWARD PASS COMPLETE ===*',i,0)
 c
-        if (ifprint .ge. 1) call prin2('timeinfo=*',timeinfo,8)
+ccccc        if (ifprint .ge. 1) call prin2('timeinfo=*',timeinfo,8)
 c       
         d=0
         do i=1,8

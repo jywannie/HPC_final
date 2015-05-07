@@ -601,7 +601,11 @@ C$OMP END PARALLEL
         subroutine lfmm2d_list2_hideP2T
      $     (bsize,nlev,laddr,scale,nterms,rmlexp,iaddr,epsfmm,
      $     timeinfo,wlists,mptemp,lmptemp,
-     $     ifprune_list2)
+     $     ifprune_list2,
+     $     nboxes,sourcesort,isource, ifcharge,chargesort,ifdipole,
+     $     dipstrsort,ifpot,pot,ifgrad,grad,ifhess,hess,
+     $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
+     $     ifhesstarg,hesstarg,ifevalloc)
         implicit real *8 (a-h,o-z)
 c
         integer iaddr(2,*),laddr(2,*),nterms(0:*)
@@ -627,7 +631,18 @@ c
 
 
 c       SUNLI: NEW VARIABLES
-        integer nlist, npts
+c        integer nlist, npts, itype
+        real *8 sourcesort(2,*)
+        integer isource(*)
+        complex *16 chargesort(*)
+        complex *16 dipstrsort(*)
+        complex *16 pot(*)
+        complex *16 grad(*)
+        complex *16 hess(*)
+        real *8 targetsort(2,*)
+        complex *16 pottarg(*)
+        complex *16 gradtarg(*)
+        complex *16 hesstarg(*)
 
 c               
 c
@@ -664,6 +679,7 @@ C$OMP$PRIVATE(list,nlists,nlist,itype)
 C$OMP$PRIVATE(ifdirect2)
 C$OMP$PRIVATE(htemp,ilist)
 C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
+
 
          do 2300 ilev=nlev,3,-1
 
@@ -777,7 +793,90 @@ c          strategy is to pu it after M2M, and impose NOWAIT for M2M
 c          loops. After P2T, we synchronize.
 c=============================================================================
 
+        if( ifevalloc .eq. 0 ) goto 3300
 
+          call prinf('=== STEP 8 (direct) =====*',i,0)
+        t1=second()
+C$        t1=omp_get_wtime()
+c
+c       ... step 8, evaluate direct interactions 
+c
+C$OMP DO SCHEDULE(DYNAMIC)
+        do 3202 ibox=1,nboxes
+c
+        call d2tgetb(ier,ibox,box,center0,corners0,wlists)
+        call d2tnkids(box,nkids)
+c
+        if (ifprint .ge. 2) then
+           call prinf('ibox=*',ibox,1)
+           call prinf('box=*',box,15)
+           call prinf('nkids=*',nkids,1)
+        endif
+c
+        if (nkids .eq. 0) then
+            npts=box(10)
+            if (ifprint .ge. 2) then
+               call prinf('npts=*',npts,1)
+               call prinf('isource=*',isource(box(9)),box(10))
+            endif
+        endif
+c
+c
+        if (nkids .eq. 0) then
+c
+c       ... evaluate self interactions
+c
+        call cfmm2dpart_direct_self_sym(box,sourcesort,
+     $     ifcharge,chargesort,ifdipole,dipstrsort,
+     $     ifpot,pot,ifgrad,grad,ifhess,hess,
+     $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
+     $     ifhesstarg,hesstarg)
+c
+c
+c       ... retrieve list #1
+c
+c       ... evaluate interactions with the nearest neighbours
+c
+        itype=1
+        call d2tgetl(ier,ibox,itype,list,nlist,wlists)
+        if (ifprint .ge. 2) call prinf('list1=*',list,nlist)
+c
+c       ... for all pairs in list #1, 
+c       evaluate the potentials and gradients directly
+c
+            do 3203 ilist=1,nlist
+               jbox=list(ilist)
+               call d2tgetb(ier,jbox,box1,center1,corners1,wlists)
+c
+c       ... prune all sourceless boxes
+c
+         if( box1(10) .eq. 0 ) goto 3203
+c    
+            call cfmm2dpart_direct(box1,box,sourcesort,
+     $         ifcharge,chargesort,ifdipole,dipstrsort,
+     $         ifpot,pot,ifgrad,grad,ifhess,hess,
+     $         targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
+     $         ifhesstarg,hesstarg)
+c
+ 3203       continue
+        endif
+c
+ 3202   continue
+C$OMP END DO
+c
+ccc        call prin2('inside fmm, pot=*',pot,2*nsource)
+ccc        call prin2('inside fmm, grad=*',grad,2*nsource)
+ccc        call prin2('inside fmm, hess=*',hess,2*nsource)
+c
+c
+        t2=second()
+C$        t2=omp_get_wtime()
+ccc     call prin2('time=*',t2-t1,1)
+        timeinfo(8)=t2-t1
+c
+ 3300   continue
+c
+ccc        call prinf('=== DOWNWARD PASS COMPLETE ===*',i,0)
 
 
 

@@ -9,17 +9,17 @@
  nbox=
       25
  time in d2tallbem=
-  0.34034E+00
+  0.36290E+00
  lused: ccenters(k)=
     3577
  lused(k)=
     6260
  time in d2tlsts=
-  0.21682E+00
+  0.20322E+00
  lused(k)=
    28568
  time in d2tstcr=
-  0.58326E+00
+  0.59356E+00
  scale=
   0.40000E+01  0.20000E+01  0.10000E+01  0.50000E+00  0.25000E+00  0.12500E+00
   0.62500E-01  0.31250E-01  0.15625E-01  0.78125E-02  0.39062E-02  0.19531E-02
@@ -53,18 +53,16 @@
  === STEP 2 (form lo) ====
  === STEPS 3,4,5 ====
  === STEP 3 (merge mp) ===
+ === STEP 8 (direct) =====
+ === STEP 8 (direct) =====
  === STEP 4 (mp to lo) ===
  === STEP 4 (mp to lo) ===
  === STEP 5 (split lo) ===
  === STEP 5 (split lo) ===
  === STEP 6 (eval mp) ====
  === STEP 7 (eval lo) ====
- === STEP 8 (direct) =====
- timeinfo=
-  0.35238E+00  0.55388E-01  0.12278E+00  0.56590E+01  0.33470E+00  0.61590E-01
-  0.28240E+00  0.41874E+01
  sum(timeinfo)=
-  0.11056E+02
+  0.11267E+02
  nboxes=
   178857
  nsource=
@@ -72,7 +70,7 @@
  ntarget=
  1000000
  time in fmm main=
-  0.11137E+02
+  0.11351E+02
  lwlists=
  *******
  lused total=
@@ -88,9 +86,9 @@
  ntarget=
  1000000
  after fmm, time (sec)=
-  0.11835E+02
+  0.12064E+02
  after fmm, speed (points+targets/sec)=
-  0.16899E+06
+  0.16579E+06
  after fmm, pot=
   -.37374E+12  -.69097E+11  -.27042E+12  0.66155E+11  -.38519E+12  0.36494E+11
   -.49268E+12  0.13732E+11  -.41680E+12  0.26806E+11  -.35536E+12  0.70853E+11
@@ -102,13 +100,13 @@
   -.43818E+12  0.00000E+00  -.45550E+12  0.00000E+00  -.27223E+12  0.00000E+00
   -.42549E+12  0.00000E+00  -.37469E+12  0.00000E+00  -.35559E+12  0.00000E+00
  directly, estimated time (sec)=
-  0.36811E+05
+  0.32085E+05
  directly, estimated speed (points/sec)=
-  0.27166E+02
+  0.31168E+02
  relative L2 error in potential=
   0.10862E+00
  relative L2 error in re(potential)=
-  0.21604E-13
+  0.21590E-13
  after fmm, pottarg=
   0.53491E+12  -.68260E+11  0.57714E+12  0.46850E+11  0.49373E+12  0.21683E+10
   0.59991E+12  0.72249E+11  0.62008E+12  0.35901E+11  0.60614E+12  -.68099E+11
@@ -120,9 +118,9 @@
   0.46846E+12  0.00000E+00  0.55396E+12  0.00000E+00  0.57982E+12  0.00000E+00
   0.62387E+12  0.00000E+00  0.60421E+12  0.00000E+00  0.61984E+12  0.00000E+00
  directly, estimated time (sec)=
-  0.31471E+05
+  0.26848E+05
  directly, estimated speed (targets/sec)=
-  0.31776E+02
+  0.37247E+02
  relative L2 error in target potential=
   0.89093E-01
  relative L2 error in target re(potential)=
