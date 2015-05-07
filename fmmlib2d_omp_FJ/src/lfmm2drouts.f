@@ -790,8 +790,9 @@ ccc        call prin2('time=*',t2-t1,1)
 c=============================================================================
 c   SUNLI: Put P2T computation here: since it is independent to any
 c          other steps, we are free to put it anywhere. One good
-c          strategy is to pu it after M2M, and impose NOWAIT for M2M
-c          loops. After P2T, we synchronize.
+c          strategy is to put it between M2M and M2L -- since M2L is
+c          independent between levels, we can put NOWAIT for both P2T
+c          and M2L and synchronize before starting L2L
 c=============================================================================
 
         if( ifevalloc .eq. 0 ) goto 3300
