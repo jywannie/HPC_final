@@ -751,7 +751,7 @@ c
  2200    continue
 
 
-C$OMP END DO
+C$OMP END DO NOWAIT
 
 
 
@@ -880,7 +880,7 @@ ccc        call prinf('=== DOWNWARD PASS COMPLETE ===*',i,0)
 
 
 
-
+C$OMP BARRIER
 
 
 
