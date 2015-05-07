@@ -601,8 +601,7 @@ C$OMP END PARALLEL
         subroutine lfmm2d_list2_hideP2T
      $     (bsize,nlev,laddr,scale,nterms,rmlexp,iaddr,epsfmm,
      $     timeinfo,wlists,mptemp,lmptemp,
-     $     ifprune_list2,
-     $     list, nlist, ilist, npts, itype)
+     $     ifprune_list2)
         implicit real *8 (a-h,o-z)
 c
         integer iaddr(2,*),laddr(2,*),nterms(0:*)
@@ -625,6 +624,11 @@ c
         real *8 timeinfo(10)
 c
         real *8, allocatable :: carray(:,:)
+
+
+c       SUNLI: NEW VARIABLES
+        integer nlist, npts
+
 c               
 c
         ldc = 100
@@ -772,6 +776,7 @@ c          other steps, we are free to put it anywhere. One good
 c          strategy is to pu it after M2M, and impose NOWAIT for M2M
 c          loops. After P2T, we synchronize.
 c=============================================================================
+
 
 
 
