@@ -565,6 +565,474 @@ C$OMP END PARALLEL
 
         return
         end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        subroutine lfmm2d_list2_hideP2T
+     $     (bsize,nlev,laddr,scale,nterms,rmlexp,iaddr,epsfmm,
+     $     timeinfo,wlists,mptemp,lmptemp,
+     $     ifprune_list2,
+     $     list, nlist, ilist, npts, itype)
+        implicit real *8 (a-h,o-z)
+c
+        integer iaddr(2,*),laddr(2,*),nterms(0:*)
+        real *8 rmlexp(*),scale(0:*)
+        integer itable(-3:3,-3:3)
+c
+        integer list(10 000)
+c
+        integer box(15)
+        real *8 bsize(0:200)
+        real *8 center0(2),corners0(2,4)
+c       
+        integer box1(15)
+        real *8 center1(2),corners1(2,4)
+c
+        real *8 wlists(*)
+        complex *16 mptemp(lmptemp)
+        complex *16 ptemp,ftemp(2),htemp(3)
+c
+        real *8 timeinfo(10)
+c
+        real *8, allocatable :: carray(:,:)
+c               
+c
+        ldc = 100
+        allocate( carray(0:ldc,0:ldc) )
+        call l2d_init_carray(carray,ldc)
+c
+c
+c     ifprint is an internal information printing flag. 
+c     Suppressed if ifprint=0.
+c     Prints timing breakdown and other things if ifprint=1.
+c     Prints timing breakdown, list information, and other things if ifprint=2.
+c       
+        ifprint=1
+c
+         if (ifprint .ge. 1) 
+     $     call prinf('=== STEP 3 (merge mp) ===*',i,0)
+         t1=second()
+C$        t1=omp_get_wtime()
+c
+c       ... step 3, merge all multipole expansions
+c       
+ccc         do 2200 ibox=nboxes,1,-1
+
+
+
+
+
+C$OMP PARALLEL DEFAULT(SHARED)
+C$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
+C$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
+C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,cd) 
+C$OMP$PRIVATE(list,nlists,nlist,itype)
+C$OMP$PRIVATE(ifdirect2)
+C$OMP$PRIVATE(htemp,ilist)
+C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
+
+         do 2300 ilev=nlev,3,-1
+
+
+C$OMP DO SCHEDULE(DYNAMIC)
+
+
+         do 2200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
+c
+         call d2tgetb(ier,ibox,box,center0,corners0,wlists)
+         call d2tnkids(box,nkids)
+c
+c       ... prune all sourceless boxes
+c
+         if( box(10) .eq. 0 ) goto 2200
+c
+         if (nkids .ne. 0) then
+c
+         level0=box(1)
+         if( level0 .ge. 2 ) then
+ccc         if (level0 .ge. 0) then
+            radius = (corners0(1,1) - center0(1))**2
+            radius = radius + (corners0(2,1) - center0(2))**2
+            radius = sqrt(radius)
+c       
+            if( ifprint .ge. 2 ) then
+               call prin2('radius=*',radius,1)
+               call prinf('ibox=*',ibox,1)
+               call prinf('box=*',box,15)
+               call prinf('nkids=*',nkids,1)
+            endif
+c
+c       ... merge multipole expansions of the kids 
+c
+            call l2dzero(rmlexp(iaddr(1,ibox)),nterms(level0))
+            if (ifprint .ge. 2) then
+               call prin2('center0=*',center0,2)
+            endif
+c
+            do 2100 i = 1,4
+               jbox = box(4+i)
+               if (jbox.eq.0) goto 2100
+               call d2tgetb(ier,jbox,box1,center1,corners1,wlists)
+               if (ifprint .ge. 2) then
+               call prinf('jbox=*',jbox,1)
+               call prin2('center1=*',center1,2)
+               endif
+               level1=box1(1)
+c       SUNLI: DON'T UNDERSTAND THIS
+               if( nterms(level0)+nterms(level1) .gt. 95 ) then
+               call l2dmpmp(scale(level1),center1,
+     1            rmlexp(iaddr(1,jbox)),nterms(level1),scale(level0),
+     1            center0,mptemp,nterms(level0))
+               else
+               call l2dmpmp_carray(scale(level1),center1,
+     1            rmlexp(iaddr(1,jbox)),nterms(level1),scale(level0),
+     1            center0,mptemp,nterms(level0),carray,ldc)
+               endif
+               call l2dadd(mptemp,rmlexp(iaddr(1,ibox)),
+     1            nterms(level0))
+ 2100       continue
+            if (ifprint .ge. 2) then
+            call prinf('=============*',x,0)
+            endif
+c       ... mark the local expansion of all kids and the parent
+c
+            endif
+         endif
+ 2200    continue
+
+
+C$OMP END DO
+
+
+
+ 2300    continue
+c
+c
+ccc        call prinf('=== UPWARD PASS COMPLETE ===*',i,0)
+c
+c------------------------------------------------------------
+c      DEBUGGING SEGMENT - once all multipole expansions are merged
+c      to top level, one can compare it to the direct formation of the
+c      expansion at the top level from the source locations.
+c
+ccc        call prinm(rmlexp(iaddr(1,1)),nterms(0))
+c
+ccc        call h2dformmp(ier,scale(0),source,charge,n,
+ccc     1  	center,nterms(0),mptemp)
+c
+ccc        call prinm(mptemp,nterms(0))
+c
+ccc        call h2dmperr(rmlexp(iaddr(1,1)),mptemp,nterms(0),d)
+ccc        call prin2('error in upward pass=*',d,1)
+c
+ccc        pause
+ccc        stop
+c      END DEBUGGING SEGMENT
+c------------------------------------------------------------
+c
+         t2=second()
+C$        t2=omp_get_wtime()
+ccc        call prin2('time=*',t2-t1,1)
+         timeinfo(3)=t2-t1
+
+
+c=============================================================================
+c   SUNLI: Put P2T computation here: since it is independent to any
+c          other steps, we are free to put it anywhere. One good
+c          strategy is to pu it after M2M, and impose NOWAIT for M2M
+c          loops. After P2T, we synchronize.
+c=============================================================================
+
+
+
+
+
+
+
+
+c
+        if (ifprint .ge. 1) 
+     $     call prinf('=== STEP 4 (mp to lo) ===*',i,0)
+        t1=second()
+C$        t1=omp_get_wtime()
+c
+c       ... step 4, convert multipole expansions into the local ones
+c
+cc        call prinf('laddr=*',laddr,2*(nlev+1))
+cc        call prin2('bsize=*',bsize,(nlev+1))
+cc        do 4200 ibox=1,nboxes
+ccc        ntops=0
+
+        call l2dterms_list2(epsfmm, itable, ier)
+c        call prinf('itable=*',itable,7*7)
+c
+        do 4300 ilev=3,nlev+1
+c        t3=second()
+cC$        t3=omp_get_wtime()
+C$OMP DO SCHEDULE(DYNAMIC)
+        do 4200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
+        call d2tgetb(ier,ibox,box,center0,corners0,wlists)
+        if (ifprint .ge. 2) then
+           call prinf('ibox=*',ibox,1)
+           call prinf('box=*',box,15)
+        endif
+        level0=box(1)
+        if (level0 .ge. 2) then
+c
+c       ... retrieve list #2
+c
+           itype=2
+           call d2tgetl(ier,ibox,itype,list,nlist,wlists)
+           if (ifprint .ge. 2) then
+              call prinf('list2=*',list,nlist)
+           endif
+c
+c       ... prune all sourceless boxes
+c
+ccc           if( box(10) .eq. 0 ) nlist=0
+
+c       ... for all pairs in list #2, apply the translation operator 
+c
+           do 4150 ilist=1,nlist
+              jbox=list(ilist)
+              call d2tgetb(ier,jbox,box1,center1,corners1,wlists)
+              if( box1(10) .eq. 0 ) goto 4150
+              if (jbox.eq.0) goto 4150
+              if ((box(12).eq.0).and.(ifprune_list2.eq.1))
+     $           goto 4150
+c              radius = (corners1(1,1) - center1(1))**2
+c              radius = radius + (corners1(2,1) - center1(2))**2
+c              radius = sqrt(radius)
+c
+c       ... convert multipole expansions for all boxes in list 2 in local exp
+c       ... if source is childless, evaluate directly (if cheaper)
+c
+
+              level1=box1(1)
+c              ifdirect2 = 0
+c              if( box1(10) .lt. (nterms(level1)+1)/2 .and. 
+c     $            box(10) .lt. (nterms(level1)+1)/2  ) 
+c     $               ifdirect2 = 1        
+c
+              ifdirect2 = 0
+c
+              if_use_trunc = 0
+c       SUNLI: WHAT IS THIS VARIABLE?
+c
+              if (ifdirect2 .eq. 0) then
+              if( if_use_trunc .eq. 0) then
+
+                 call l2dzero(mptemp,nterms(level1))
+                 if( nterms(level0)+nterms(level1) .gt. 95 ) then
+                 call l2dmploc(scale(level1),center1,
+     1              rmlexp(iaddr(1,jbox)),nterms(level1),
+     $              scale(level0),
+     1              center0,mptemp,nterms(level0))
+                 else
+                 call l2dmploc_carray(scale(level1),center1,
+     1              rmlexp(iaddr(1,jbox)),nterms(level1),
+     $              scale(level0),
+     1              center0,mptemp,nterms(level0),
+     $              carray,ldc)
+                 endif
+                 call l2dadd(mptemp,rmlexp(iaddr(2,ibox)),
+     1              nterms(level0))
+c
+c              call l2dmploc_add(scale(level1),center1,
+c     $           rmlexp(iaddr(1,jbox)),nterms(level1),
+c     $           scale(level0),center0,rmlexp(iaddr(2,ibox)),
+c     $           nterms(level0))
+
+              else
+
+              ii=box1(2)-box(2)
+              jj=box1(3)-box(3)
+              nterms_trunc=itable(ii,jj)
+              nterms_trunc=min(nterms(level0),nterms_trunc)
+              nterms_trunc=min(nterms(level1),nterms_trunc)
+
+                 call l2dzero(mptemp,nterms_trunc)
+                 if( nterms_trunc+nterms_trunc .gt. 95 ) then
+                 call l2dmploc(scale(level1),center1,
+     1              rmlexp(iaddr(1,jbox)),nterms_trunc,
+     $              scale(level0),
+     1              center0,mptemp,nterms_trunc)
+                 else
+                 call l2dmploc_carray(scale(level1),center1,
+     1              rmlexp(iaddr(1,jbox)),nterms_trunc,
+     $              scale(level0),
+     1              center0,mptemp,nterms_trunc,
+     $              carray,ldc)
+                 endif
+                 call l2dadd(mptemp,rmlexp(iaddr(2,ibox)),
+     1              nterms_trunc)
+
+c              call l2dmploc_add_trunc(scale(level1),center1,
+c     $           rmlexp(iaddr(1,jbox)),nterms(level1),nterms_trunc,
+c     $           scale(level0),center0,rmlexp(iaddr(2,ibox)),
+c     $           nterms(level0))
+
+c              call l2dmploc_add(scale(level1),center1,
+c     $           rmlexp(iaddr(1,jbox)),nterms_trunc,
+c     $           scale(level0),center0,rmlexp(iaddr(2,ibox)),
+c     $           nterms_trunc)
+
+              endif
+              endif
+
+ 4150       continue
+        endif
+ 4200   continue
+C$OMP END DO
+c        t4=second()
+cC$        t4=omp_get_wtime()
+c        write(*,*) 'level ', ilev, ' time in list2:', t4-t3
+ccc        write(*,*) 'time in list2:', second()-t1
+ccc        write(*,*) 'ntops:', ntops
+ccc        write(*,*) 'speed:', ntops/(second()-t1)
+ 4300   continue
+c
+        t2=second()
+C$        t2=omp_get_wtime()
+ccc     call prin2('time=*',t2-t1,1)
+        timeinfo(4)=t2-t1
+c       
+        if (ifprint .ge. 1) 
+     $     call prinf('=== STEP 5 (split lo) ===*',i,0)
+        t1=second()
+C$        t1=omp_get_wtime()
+c
+c       ... step 5, split all local expansions
+c
+ccc        do 5200 ibox=1,nboxes
+        do 5300 ilev=3,nlev
+
+
+
+
+C$OMP DO SCHEDULE(DYNAMIC)
+
+
+
+cccC$OMP$NUM_THREADS(4) 
+        do 5200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
+c
+        call d2tgetb(ier,ibox,box,center0,corners0,wlists)
+        call d2tnkids(box,nkids)
+c       
+        if (nkids .ne. 0) then
+            level0=box(1)
+            if (level0 .ge. 2) then
+               if (ifprint .ge. 2) then
+                  call prinf('ibox=*',ibox,1)
+                  call prinf('box=*',box,15)
+                  call prinf('nkids=*',nkids,1)
+                  call prin2('center0=*',center0,2)
+               endif
+c
+c       ... split local expansion of the parent box
+c
+               do 5100 i = 1,4
+	          jbox = box(4+i)
+	          if (jbox.eq.0) goto 5100
+                  call d2tgetb(ier,jbox,box1,center1,corners1,wlists)
+                  radius = (corners1(1,1) - center1(1))**2
+                  radius = radius + (corners1(2,1) - center1(2))**2
+                  radius = sqrt(radius)
+                  if (ifprint .ge. 2) then
+                     call prinf('jbox=*',jbox,1)
+                     call prin2('radius=*',radius,1)
+                     call prin2('center1=*',center1,2)
+                  endif
+                  level1=box1(1)
+                  if( nterms(level0)+nterms(level1) .gt. 95 ) then
+                  call l2dlocloc(scale(level0),center0,
+     1               rmlexp(iaddr(2,ibox)),nterms(level0),
+     1               scale(level1),center1,mptemp,nterms(level1))
+                  else
+                  call l2dlocloc_carray(scale(level0),center0,
+     1               rmlexp(iaddr(2,ibox)),nterms(level0),
+     1               scale(level1),center1,mptemp,nterms(level1),
+     1               carray,ldc)
+                  endif
+                  call l2dadd(mptemp,rmlexp(iaddr(2,jbox)),
+     1   	       nterms(level1))
+ 5100          continue
+               if (ifprint .ge. 2) call prinf('=============*',x,0)
+            endif
+        endif
+c
+        if (nkids .ne. 0) then
+            level=box(1)
+            if (level .ge. 2) then
+               if( ifprint .ge. 2 ) then
+                  call prinf('ibox=*',ibox,1)
+                  call prinf('box=*',box,15)
+                  call prinf('nkids=*',nkids,1)
+               endif
+            endif
+        endif
+ 5200   continue
+C$OMP END DO
+ 5300   continue
+c       
+        t2=second()
+C$        t2=omp_get_wtime()
+ccc     call prin2('time=*',t2-t1,1)
+        timeinfo(5)=t2-t1
+c
+
+C$OMP END PARALLEL
+
+
+        return
+        end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 c
 c
 c

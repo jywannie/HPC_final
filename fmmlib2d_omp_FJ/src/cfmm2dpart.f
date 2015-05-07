@@ -935,7 +935,7 @@ c
         if (ifpot.eq.1) ifprune_list2 = 0
         if (ifgrad.eq.1) ifprune_list2 = 0
         if (ifhess.eq.1) ifprune_list2 = 0
-        call lfmm2d_list2
+        call lfmm2d_list2_hideP2T
      $     (bsize,nlev,laddr,scale,nterms,rmlexp,iaddr,epsfmm,
      $     timeinfo,wlists,mptemp,lmptemp,
      $     ifprune_list2)

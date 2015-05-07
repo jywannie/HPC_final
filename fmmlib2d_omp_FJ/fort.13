@@ -9,17 +9,17 @@
  nbox=
       25
  time in d2tallbem=
-  0.89825E+00
+  0.32817E+00
  lused: ccenters(k)=
     3577
  lused(k)=
     6260
  time in d2tlsts=
-  0.22842E+00
+  0.20511E+00
  lused(k)=
    28568
  time in d2tstcr=
-  0.11563E+01
+  0.55795E+00
  scale=
   0.40000E+01  0.20000E+01  0.10000E+01  0.50000E+00  0.25000E+00  0.12500E+00
   0.62500E-01  0.31250E-01  0.15625E-01  0.78125E-02  0.39062E-02  0.19531E-02
@@ -61,10 +61,10 @@
  === STEP 7 (eval lo) ====
  === STEP 8 (direct) =====
  timeinfo=
-  0.35529E+00  0.55785E-01  0.13505E+00  0.59582E+01  0.25092E+00  0.51422E-01
-  0.28894E+00  0.42540E+01
+  0.26867E+00  0.56050E-01  0.11235E+00  0.30041E-04  0.22395E+00  0.58164E-01
+  0.28336E+00  0.38424E+01
  sum(timeinfo)=
-  0.11350E+02
+  0.48450E+01
  nboxes=
   178857
  nsource=
@@ -72,7 +72,7 @@
  ntarget=
  1000000
  time in fmm main=
-  0.11446E+02
+  0.10389E+02
  lwlists=
  *******
  lused total=
@@ -88,9 +88,9 @@
  ntarget=
  1000000
  after fmm, time (sec)=
-  0.12746E+02
+  0.11048E+02
  after fmm, speed (points+targets/sec)=
-  0.15692E+06
+  0.18103E+06
  after fmm, pot=
   -.37374E+12  -.69097E+11  -.27042E+12  0.66155E+11  -.38519E+12  0.36494E+11
   -.49268E+12  0.13732E+11  -.41680E+12  0.26806E+11  -.35536E+12  0.70853E+11
@@ -102,9 +102,9 @@
   -.43818E+12  0.00000E+00  -.45550E+12  0.00000E+00  -.27223E+12  0.00000E+00
   -.42549E+12  0.00000E+00  -.37469E+12  0.00000E+00  -.35559E+12  0.00000E+00
  directly, estimated time (sec)=
-  0.36202E+05
+  0.34679E+05
  directly, estimated speed (points/sec)=
-  0.27623E+02
+  0.28836E+02
  relative L2 error in potential=
   0.10862E+00
  relative L2 error in re(potential)=
@@ -120,9 +120,9 @@
   0.46846E+12  0.00000E+00  0.55396E+12  0.00000E+00  0.57982E+12  0.00000E+00
   0.62387E+12  0.00000E+00  0.60421E+12  0.00000E+00  0.61984E+12  0.00000E+00
  directly, estimated time (sec)=
-  0.32132E+05
+  0.29003E+05
  directly, estimated speed (targets/sec)=
-  0.31122E+02
+  0.34479E+02
  relative L2 error in target potential=
   0.89093E-01
  relative L2 error in target re(potential)=
