@@ -921,10 +921,10 @@ c
 
 
 
-C$OMP DO SCHEDULE(DYNAMIC, CHUNK_SIZE_M2L)
         do 4300 ilev=3,nlev+1
 c        t3=second()
 cC$        t3=omp_get_wtime()
+C$OMP DO SCHEDULE(DYNAMIC, CHUNK_SIZE_M2L)
         do 4200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
         call d2tgetb(ier,ibox,box,center0,corners0,wlists)
         if (ifprint .ge. 2) then
@@ -1044,6 +1044,7 @@ c     $           nterms_trunc)
 
 
 
+C$OMP END DO NOWAIT
 
 
 c        t4=second()
@@ -1055,7 +1056,6 @@ ccc        write(*,*) 'speed:', ntops/(second()-t1)
  4300   continue
 
 
-C$OMP END DO NOWAIT
 
 
 C$OMP BARRIER
