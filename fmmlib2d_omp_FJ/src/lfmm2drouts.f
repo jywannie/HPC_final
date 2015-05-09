@@ -605,7 +605,8 @@ C$OMP END PARALLEL
      $     nboxes,sourcesort,isource, ifcharge,chargesort,ifdipole,
      $     dipstrsort,ifpot,pot,ifgrad,grad,ifhess,hess,
      $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
-     $     ifhesstarg,hesstarg,ifevalloc)
+     $     ifhesstarg,hesstarg,ifevalloc,
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
         implicit real *8 (a-h,o-z)
 c
         integer iaddr(2,*),laddr(2,*),nterms(0:*)
@@ -651,9 +652,11 @@ c               two variable as input, instead of parameter.
         integer CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L
 cccc        real *8 TIME_THREADS(32,64), tt(32)
 
-        CHUNK_SIZE_P2T = 1
-        CHUNK_SIZE_M2M = 1
-        CHUNK_SIZE_M2L = 1
+c        CHUNK_SIZE_P2T = 1
+c        CHUNK_SIZE_M2M = 1
+c        CHUNK_SIZE_M2L = 1
+
+
 c               
 c
         ldc = 100

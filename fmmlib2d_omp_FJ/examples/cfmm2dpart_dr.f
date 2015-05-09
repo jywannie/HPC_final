@@ -1,3 +1,6 @@
+      use omp_lib
+
+
 c
 c     testing code for FMM - tests charges and dipoles against
 c     O(N^2) direct method 
@@ -84,12 +87,13 @@ c
 
 
       print *, 'nsource = ',nsource
-      print *, 'CHUNK_SIZE_P2T = ',CHUNK_SIZE_P2
+      print *, 'CHUNK_SIZE_P2T = ',CHUNK_SIZE_P2T
       print *, 'CHUNK_SIZE_M2M = ',CHUNK_SIZE_M2M
       print *, 'CHUNK_SIZE_M2L = ',CHUNK_SIZE_M2L
 
 
 
+        call prinf('OMP_GET_MAX_THREADS = *',OMP_GET_MAX_THREADS(),1)
 
 c
         call prinf('nsource=*',nsource,1)
@@ -184,12 +188,13 @@ c
         t1=second()
 C$        t1=omp_get_wtime()
 c       
-        call cfmm2dparttarg(ier,iprec,
+        call cfmm2dparttarg2(ier,iprec,
      $     nsource,source,
      $     ifcharge,charge,ifdipole,dipstr,
      $     ifpot,pot,ifgrad,grad,ifhess,hess,
      $     ntarget,target,ifpottarg,pottarg,ifgradtarg,gradtarg,
-     $     ifhesstarg,hesstarg)
+     $     ifhesstarg,hesstarg,
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
 c       
         t2=second()
 C$        t2=omp_get_wtime()

@@ -334,6 +334,15 @@ c
         real *8, allocatable :: wrmlexp(:)
 c
         data ima/(0.0d0,1.0d0)/
+
+c       SUNLI: NEW VARIABLES
+        integer CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L
+
+        CHUNK_SIZE_P2T = 1
+        CHUNK_SIZE_M2M = 1
+        CHUNK_SIZE_M2L = 1
+
+
 c       
         ier=0
         lused7=0
@@ -412,7 +421,6 @@ c     lused7 is counter that steps through workspace,
 c     keeping track of total memory used.
 c
         lused7=1
-        print *, "hahaha"
 c
 c
 c       ... prepare data structures 
@@ -602,7 +610,8 @@ C$        t1=omp_get_wtime()
      $     ifhesstarg,w(ihesstarg),
      $     epsfmm,w(iiaddr),wrmlexp(irmlexp),w(imptemp),lmptemp,
      $     nboxes,laddr,nlev,scale,bsize,nterms,
-     $     wlists(iwlists),lwlists)
+     $     wlists(iwlists),lwlists
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
         t2=second()
 C$        t2=omp_get_wtime()
         if( ifprint .eq. 0 ) call prin2('time in fmm main=*',t2-t1,1)
@@ -643,6 +652,503 @@ c
 c
 c
 c
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        subroutine cfmm2dparttarg2(ier,iprec,nsource,source,
+     $     ifcharge,charge,ifdipole,dipstr,
+     $     ifpot,pot,ifgrad,grad,ifhess,hess,
+     $     ntarget,target,ifpottarg,pottarg,ifgradtarg,gradtarg,
+     $     ifhesstarg,hesstarg,
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
+        implicit real *8 (a-h,o-z)
+c       
+c       Generalized Cauchy FMM in R^2: evaluate all pairwise particle
+c       interactions (ignoring self-interaction) 
+c       and interactions with targets.
+c
+c       We use log(z) for the Green's function.
+c       Self-interactions are not included.
+c   
+c cfmm2d: charge and dipstr are complex valued, z are complex numbers.
+c
+c        Note, that the complex valued logarithm is a multi-valued
+c        function, so the potential values have to be interpreted
+c        carefully, if charges are specified.  For example, only the
+c        real part of potential is meaningful for real valued charges.
+c        The gradients and hessians are valid for arbitrary complex charges.
+c
+c \phi(z_i) = \sum_{j\ne i} charge_j \log(z_i-z_j) + dipstr_j \frac{1}{z_i-z_j}
+c
+c        In this routine, we define the gradient as the first
+c        derivative with respect to z, and the hessian as the second
+c        derivative with respect to z.
+c
+c \gradient \phi(z_i) = \frac{\partial \phi(z_i)}{\partial z}
+c \hessian  \phi(z_i) = \frac{\partial^2 \phi(z_i)}{\partial z^2}
+c
+c       This is primarily a memory management code. 
+c       The actual work is carried out in subroutine cfmm2dparttargmain.
+c
+c       INPUT PARAMETERS:
+c
+c       iprec:  FMM precision flag
+c
+c                 -2 => tolerance =.5d0
+c                 -1 => tolerance =.5d-1
+c                  0 => tolerance =.5d-2
+c                  1 => tolerance =.5d-3
+c                  2 => tolerance =.5d-6
+c                  3 => tolerance =.5d-9
+c                  4 => tolerance =.5d-12
+c                  5 => tolerance =.5d-15
+c
+c       nsource: integer:  number of sources
+c       source: real *8 (2,nsource):  source locations
+c       ifcharge:  charge computation flag
+c                  ifcharge = 1   =>  include charge contribution
+c                                     otherwise do not
+c       charge: complex *16 (nsource): charge strengths
+c       ifdipole:  dipole computation flag
+c                  ifdipole = 1   =>  include dipole contribution
+c                                     otherwise do not
+c       dipstr: complex *16 (nsource): dipole strengths
+c       dipvec: real *8 (2,nsource): dipole orientation vectors. 
+c
+c       ifpot:  potential flag (1=compute potential, otherwise no)
+c       ifgrad:  gradient flag (1=compute gradient, otherwise no)
+c       ifhess:  hessian flag (1=compute hessian, otherwise no)
+c       ntarget: integer:  number of targets
+c       target: real *8 (2,ntarget):  target locations
+c       ifpottarg:  target potential flag 
+c                   (1=compute potential, otherwise no)
+c       ifgradtarg:  target gradient flag 
+c                   (1=compute gradient, otherwise no)
+c       ihesstarg:  target hessian flag 
+c                   (1=compute hessian, otherwise no)
+c
+c       OUTPUT PARAMETERS:
+c
+c       ier   =  error return code
+c                ier=0     =>  normal execution
+c                ier=4     =>  cannot allocate tree workspace
+c                ier=8     =>  cannot allocate bulk FMM  workspace
+c                ier=16    =>  cannot allocate mpole expansion
+c                              workspace in FMM
+c
+c       pot: complex *16 (nsource): potential at source locations
+c       grad: complex *16 (nsource): gradient  at source locations
+c       hess: complex *16 (nsource): hessian at source locations
+c       pottarg: complex *16 (ntarget): potential at target locations 
+c       gradtarg: complex *16 (ntarget): gradient  at target locations 
+c       hesstarg: complex *16 (ntarget): hessian at target locations
+c
+c
+c
+        real *8 source(2,*)
+        complex *16 charge(*)
+        complex *16 dipstr(*)
+        complex *16 ima
+        complex *16 pot(*)
+        complex *16 grad(*)
+        complex *16 hess(*)
+c
+        real *8 target(2,*)
+        complex *16 pottarg(*)
+        complex *16 gradtarg(*)        
+        complex *16 hesstarg(*)
+c
+        real *8 timeinfo(10)
+c       
+        real *8 center(2)
+c       
+c
+c     Note: various arrays dimensioned here to 200.
+c     That allows for 200 levels of refinement, which is 
+c     more than enough for any non-pathological case.
+c
+        integer laddr(2,200)
+        real *8 scale(0:200)
+        real *8 bsize(0:200)
+        integer nterms(0:200)
+c       
+        complex *16 ptemp,gtemp(2),htemp(3)
+c       
+        integer box(15)
+        real *8 center0(2),corners0(2,4)
+c       
+        integer box1(15)
+        real *8 center1(2),corners1(2,4)
+c       
+        real *8, allocatable :: w(:)
+        real *8, allocatable :: wlists(:)
+        real *8, allocatable :: wrmlexp(:)
+c
+        data ima/(0.0d0,1.0d0)/
+
+
+c       SUNLI: NEW VARIABLES
+        integer CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L
+c       
+        ier=0
+        lused7=0
+c       
+        done=1
+        pi=4*atan(done)
+
+c
+c
+c     ifprint is an internal information printing flag. 
+c     Suppressed if ifprint=0.
+c     Prints timing breakdown and other things if ifprint=1.
+c       
+        ifprint=0
+c
+c     set fmm tolerance based on iprec flag.
+c       
+        if( iprec .eq. -2 ) epsfmm=.5d-0 
+        if( iprec .eq. -1 ) epsfmm=.5d-1
+        if( iprec .eq. 0 ) epsfmm=.5d-2
+        if( iprec .eq. 1 ) epsfmm=.5d-3
+        if( iprec .eq. 2 ) epsfmm=.5d-6
+        if( iprec .eq. 3 ) epsfmm=.5d-9
+        if( iprec .eq. 4 ) epsfmm=.5d-12
+        if( iprec .eq. 5 ) epsfmm=.5d-15
+        if( iprec .eq. 6 ) epsfmm=0
+c       
+        if(ifprint .eq. 1) call prin2('epsfmm=*',epsfmm,1)
+c
+c     set criterion for box subdivision (number of sources per box)
+c
+        if( iprec .eq. -2 ) nbox=3
+        if( iprec .eq. -1 ) nbox=5
+        if( iprec .eq. 0 ) nbox=8
+        if( iprec .eq. 1 ) nbox=10
+        if( iprec .eq. 2 ) nbox=15
+        if( iprec .eq. 3 ) nbox=20
+        if( iprec .eq. 4 ) nbox=25
+        if( iprec .eq. 5 ) nbox=45
+        if( iprec .eq. 6 ) nbox=nsource+ntarget
+c
+c
+        if(ifprint .eq. 1) call prinf('nbox=*',nbox,1)
+c
+c
+c     create quad-tree data structure
+c
+        t1=second()
+C$        t1=omp_get_wtime()
+        ntot = 100*(nsource+ntarget)+10000
+        do ii = 1,10
+           allocate (wlists(ntot))
+           call lfmm2dparttree(ier,iprec,
+     $        nsource,source,ntarget,target,
+     $        nbox,epsfmm,iisource,iitarget,iwlists,lwlists,
+     $        nboxes,laddr,nlev,center,size,
+     $        wlists,ntot,lused7)
+           if (ier.ne.0) then
+              deallocate(wlists)
+              ntot = ntot*1.5
+              call prinf(' increasing allocation, ntot is *',ntot,1)
+           else
+             goto 1200
+           endif
+        enddo
+1200    continue
+        if (ier.ne.0) then
+           call prinf(' exceeded max allocation, ntot is *',ntot,1)
+           ier = 4
+           return
+        endif
+        t2=second()
+C$        t2=omp_get_wtime()
+        if( ifprint .eq. 1 ) call prin2('time in d2tstcr=*',t2-t1,1)
+c
+c     lused7 is counter that steps through workspace,
+c     keeping track of total memory used.
+c
+        lused7=1
+c
+c
+c       ... prepare data structures 
+c
+        do i = 0,nlev
+        scale(i) = 1.0d0
+        boxsize = abs((size/2.0**i))
+ccc        if (boxsize .lt. 1) scale(i) = boxsize
+        scale(i) = boxsize
+        enddo
+c       
+        if(ifprint .eq. 1) call prin2('scale=*',scale,nlev+1)
+c       
+c
+c       carve up workspace further
+c
+c     isourcesort is pointer for sorted source coordinates
+c     itargetsort is pointer for sorted target locations
+c     ichargesort is pointer for sorted charge densities
+c     idipvecsort is pointer for sorted dipole orientation vectors
+c     idipstrsort is pointer for sorted dipole densities
+c
+        isourcesort = lused7 + 5
+        lsourcesort = 2*nsource
+        itargetsort = isourcesort+lsourcesort
+        ltargetsort = 2*ntarget
+        ichargesort = itargetsort+ltargetsort
+        lchargesort = 2*nsource
+        idipvecsort = ichargesort+lchargesort
+        if (ifdipole.eq.1) then
+          ldipvec = 2*nsource
+          ldipstr = 2*nsource
+        else
+          ldipvec = 2
+          ldipstr = 2
+        endif
+        idipstrsort = idipvecsort + ldipvec
+        lused7 = idipstrsort + ldipstr
+c
+c       ... allocate the potential and gradient arrays
+c
+        ipot = lused7
+        lpot = 2*nsource
+        lused7=lused7+lpot
+c       
+        igrad = lused7
+        if( ifgrad .eq. 1) then
+        lgrad = 2*nsource
+        else
+        lgrad=4
+        endif
+        lused7=lused7+lgrad
+c      
+        ihess = lused7
+        if( ifhess .eq. 1) then
+        lhess = 2*nsource
+        else
+        lhess=6
+        endif
+        lused7=lused7+lhess
+c      
+        ipottarg = lused7
+        lpottarg = 2*ntarget
+        lused7=lused7+lpottarg
+c       
+        igradtarg = lused7
+        if( ifgradtarg .eq. 1) then
+        lgradtarg = 2*ntarget
+        else
+        lgradtarg=4
+        endif
+        lused7=lused7+lgradtarg
+c      
+        ihesstarg = lused7
+        if( ifhesstarg .eq. 1) then
+        lhesstarg = 2*ntarget
+        else
+        lhesstarg=6
+        endif
+        lused7=lused7+lhesstarg
+c      
+        if(ifprint .eq. 1) call prinf(' lused7 is *',lused7,1)
+c
+c       based on FMM tolerance, compute expansion lengths nterms(i)
+c      
+        nmax = 0
+
+        do i = 0,nlev
+           bsize(i)=size/2.0d0**i
+           call l2dterms(epsfmm, nterms(i), ier)
+           if (nterms(i).gt. nmax .and. i.ge. 2) nmax = nterms(i)
+        enddo
+c
+        if (ifprint.eq.1) 
+     $     call prin2('in lfmm2dpart, bsize(0)=*',
+     $     abs(bsize(0)),1)
+c
+        if (ifprint.eq.1) call prin2('bsize=*',bsize,nlev+1)
+        if (ifprint.eq.1) call prinf('nterms=*',nterms,nlev+1)
+c
+c       
+c     Multipole and local expansions will be held in workspace
+c     in locations pointed to by array iaddr(2,nboxes).
+c
+c     iiaddr is pointer to iaddr array, itself contained in workspace.
+c     imptemp is pointer for single expansion (dimensioned by nmax)
+c
+c       ... allocate iaddr and temporary arrays
+c
+        iiaddr = lused7 
+        imptemp = iiaddr + 2*nboxes
+        lmptemp = (2*nmax+1)*2
+        lused7 = imptemp + lmptemp
+        allocate(w(lused7),stat=ier)
+        if (ier.ne.0) then
+           call prinf(' cannot allocate bulk FMM workspace,
+     1                  lused7 is *',lused7,1)
+           ier = 8
+           return
+        endif
+c
+c     reorder sources, targets so that each box holds
+c     contiguous list of source/target numbers.
+
+c
+        call c2dreorder(nsource,source,ifcharge,charge,wlists(iisource),
+     $     ifdipole,dipstr,
+     1     w(isourcesort),w(ichargesort),w(idipstrsort)) 
+c       
+        call l2dreordertarg(ntarget,target,wlists(iitarget),
+     $     w(itargetsort))
+c
+        if(ifprint .eq. 1) then
+        call prinf('finished reordering=*',ier,1)
+        call prinf('ier=*',ier,1)
+        call prinf('nboxes=*',nboxes,1)
+        call prinf('nlev=*',nlev,1)
+        call prinf('nboxes=*',nboxes,1)
+        call prinf('lused7=*',lused7,1)
+        endif
+c
+c
+c     allocate memory need by multipole, local expansions at all
+c     levels
+c     irmlexp is pointer for workspace need by various fmm routines,
+c
+        call l2dmpalloc(wlists(iwlists),w(iiaddr),nboxes,lmptot,nterms)
+c
+        if(ifprint .eq. 1) call prinf(' lmptot is *',lmptot,1)
+c       
+        irmlexp = 1
+        lused7 = irmlexp + lmptot 
+        if(ifprint .eq. 1) call prinf(' lused7 is *',lused7,1)
+        allocate(wrmlexp(lused7),stat=ier)
+        if (ier.ne.0) then
+           call prinf(' cannot allocate mpole expansion workspace,
+     1                  lused7 is *',lused7,1)
+           ier = 16
+           return
+        endif
+c
+c       
+ccc        do i=lused7+1,lused7+1+100
+ccc        w(i)=777
+ccc        enddo
+c
+c     Memory allocation is complete. 
+c     Call main fmm routine. There are, unfortunately, a lot
+c     of parameters here. ifevalfar and ifevalloc determine
+c     whether far gradient and local gradients (respectively) are to 
+c     be evaluated. Setting both to 1 means that both will be
+c     computed (which is the normal scenario).
+c
+        ifevalfar=1
+        ifevalloc=1
+c
+        t1=second()
+C$        t1=omp_get_wtime()
+        call cfmm2dparttargmain(ier,iprec,
+     $     ifevalfar,ifevalloc,
+     $     nsource,w(isourcesort),wlists(iisource),
+     $     ifcharge,w(ichargesort),
+     $     ifdipole,w(idipstrsort),
+     $     ifpot,w(ipot),ifgrad,w(igrad),ifhess,w(ihess),
+     $     ntarget,w(itargetsort),wlists(iitarget),
+     $     ifpottarg,w(ipottarg),ifgradtarg,w(igradtarg),
+     $     ifhesstarg,w(ihesstarg),
+     $     epsfmm,w(iiaddr),wrmlexp(irmlexp),w(imptemp),lmptemp,
+     $     nboxes,laddr,nlev,scale,bsize,nterms,
+     $     wlists(iwlists),lwlists,
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
+        t2=second()
+C$        t2=omp_get_wtime()
+        if( ifprint .eq. 0 ) call prin2('time in fmm main=*',t2-t1,1)
+c
+c       parameter ier from targmain routine is currently meaningless, reset to 0
+        if( ier .ne. 0 ) ier = 0
+c
+        if(ifprint .eq. 1) call prinf('lwlists=*',lwlists,1)
+        if(ifprint .eq. 1) then
+        call prinf('lused total=*',lused7,1)
+        call prinf('lused total(k)=*',lused7/1000,1)
+        call prinf('lused total(M)=*',lused7/1000000,1)
+        endif
+c       
+        if(ifprint .eq. 1) 
+     $     call prin2('memory / point = *',(lused7)/dble(nsource),1)
+c       
+ccc        call prin2('after w=*', w(1+lused7-100), 2*100)
+c
+        if(ifpot .eq. 1) 
+     $     call l2dpsort(nsource,wlists(iisource),w(ipot),pot)
+        if(ifgrad .eq. 1) 
+     $     call l2dpsort(nsource,wlists(iisource),w(igrad),grad)
+        if(ifhess .eq. 1) 
+     $     call l2dpsort(nsource,wlists(iisource),w(ihess),hess)
+c
+        if(ifpottarg .eq. 1 )
+     $     call l2dpsort(ntarget,wlists(iitarget),w(ipottarg),pottarg)
+        if(ifgradtarg .eq. 1) 
+     $     call l2dpsort(ntarget,wlists(iitarget),w(igradtarg),gradtarg)
+        if(ifhesstarg .eq. 1) 
+     $     call l2dpsort(ntarget,wlists(iitarget),w(ihesstarg),hesstarg)
+c       
+        return
+        end
+
+
+
         subroutine cfmm2dparttargmain(ier,iprec,
      $     ifevalfar,ifevalloc,
      $     nsource,sourcesort,isource,
@@ -653,7 +1159,8 @@ c
      $     ifhesstarg,hesstarg,
      $     epsfmm,iaddr,rmlexp,mptemp,lmptemp,
      $     nboxes,laddr,nlev,scale,bsize,nterms,
-     $     wlists,lwlists)
+     $     wlists,lwlists,
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
         implicit real *8 (a-h,o-z)
         real *8 sourcesort(2,*)
         integer isource(*)
@@ -687,6 +1194,10 @@ c
         integer nterms_eval(4,0:200)
 c
         data ima/(0.0d0,1.0d0)/
+
+
+c       SUNLI: NEW VARIABLES
+        integer CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L        
 ccc        save
 c
 c
@@ -695,6 +1206,7 @@ c     Suppressed if ifprint=0.
 c     Prints timing breakdown and other things if ifprint=1.
 c     Prints timing breakdown, list information, and other things if ifprint=2.
 c       
+        
         ifprint=0
 c
 c
@@ -752,6 +1264,7 @@ cccC$OMP$NUM_THREADS(4)
 C$OMP END PARALLEL DO
 c
 c
+        
         if(ifprint .ge. 1) 
      $     call prinf('=== STEP 1 (form mp) ====*',i,0)
         t1=second()
@@ -916,7 +1429,8 @@ c
      $         ifcharge,chargesort,ifdipole,dipstrsort,
      $         ifpot,pot,ifgrad,grad,ifhess,hess,
      $         targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
-     $         ifhesstarg,hesstarg)
+     $         ifhesstarg,hesstarg,
+     $         CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
 c
             endif
  3250    continue
@@ -943,7 +1457,8 @@ c
      $     nboxes,sourcesort,isource,ifcharge,chargesort,ifdipole,
      $     dipstrsort,ifpot,pot,ifgrad,grad,ifhess,hess,
      $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
-     $     ifhesstarg,hesstarg,ifevalloc)
+     $     ifhesstarg,hesstarg,ifevalloc,
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
 c
         if(ifprint .ge. 1)
      $     call prinf('=== STEP 6 (eval mp) ====*',i,0)
