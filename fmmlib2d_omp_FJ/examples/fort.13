@@ -1,50 +1,42 @@
  nsource=
-       0
+     100
  ntarget=
-       0
+     100
  iprec=
        4
- epsfmm=
-  0.50000E-12
- nbox=
-      25
-  increasing allocation, ntot is 
-   15000
-  increasing allocation, ntot is 
-   22500
-  increasing allocation, ntot is 
-   33750
-  increasing allocation, ntot is 
-   50625
-  increasing allocation, ntot is 
-   75937
-  increasing allocation, ntot is 
-  113905
-  increasing allocation, ntot is 
-  170857
-  increasing allocation, ntot is 
-  256285
-  increasing allocation, ntot is 
-  384427
-  increasing allocation, ntot is 
-  576640
-  exceeded max allocation, ntot is 
-  576640
+ time in d2tallbem=
+  0.64993E-03
+ lused: ccenters(k)=
+       0
+ lused(k)=
+       1
+ time in d2tlsts=
+  0.49829E-04
+ lused(k)=
+       2
+ time in fmm main=
+  0.41800E-02
  nsource=
-       0
+     100
  ntarget=
-       0
+     100
  after fmm, time (sec)=
-  0.34785E-03
+  0.71058E-02
  after fmm, speed (points+targets/sec)=
-  0.00000E+00
- after fmm, pot=
- directly, pot=
+  0.28146E+05
  directly, estimated time (sec)=
-          NaN
+  0.90003E-03
  directly, estimated speed (points/sec)=
-  0.00000E+00
+  0.11111E+06
  relative L2 error in potential=
-          NaN
+  0.53566E-01
  relative L2 error in re(potential)=
-          NaN
+  0.25446E-15
+ directly, estimated time (sec)=
+  0.79075E-03
+ directly, estimated speed (targets/sec)=
+  0.12646E+06
+ relative L2 error in target potential=
+  0.79214E-01
+ relative L2 error in target re(potential)=
+  0.32282E-15

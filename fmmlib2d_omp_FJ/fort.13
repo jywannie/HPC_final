@@ -1,166 +1,42 @@
  nsource=
-     100
+  100000
  ntarget=
-     100
+  100000
  iprec=
        4
- epsfmm=
-  0.50000E-12
- nbox=
-      25
  time in d2tallbem=
-  0.16580E-02
+  0.37490E-01
  lused: ccenters(k)=
-       0
+     478
  lused(k)=
-       1
+     838
  time in d2tlsts=
-  0.44107E-04
+  0.29090E-01
  lused(k)=
-       2
- time in d2tstcr=
-  0.31219E-02
- scale=
-  0.39944E+01  0.19972E+01  0.99860E+00  0.49930E+00  0.24965E+00
-  lused7 is 
-    1030
- in lfmm2dpart, bsize(0)=
-  0.39944E+01
- bsize=
-  0.39944E+01  0.19972E+01  0.99860E+00  0.49930E+00  0.24965E+00
- nterms=
-      38      38      38      38      38
- finished reordering=
-       0
- ier=
-       0
- nboxes=
-      33
- nlev=
-       4
- nboxes=
-      33
- lused7=
-    1250
-  lmptot is 
-    5149
-  lused7 is 
-    5150
- === STEP 1 (form mp) ====
- === STEP 2 (form lo) ====
- === STEPS 3,4,5 ====
- === STEP 3 (merge mp) ===
- === STEP 8 (direct) =====
- === STEP 8 (direct) =====
- === STEP 8 (direct) =====
- === STEP 4 (mp to lo) ===
- === STEP 4 (mp to lo) ===
- === STEP 8 (direct) =====
- === STEP 4 (mp to lo) ===
- === STEP 4 (mp to lo) ===
- === STEP 8 (direct) =====
- === STEP 8 (direct) =====
- === STEP 8 (direct) =====
- === STEP 4 (mp to lo) ===
- === STEP 8 (direct) =====
- === STEP 4 (mp to lo) ===
- === STEP 8 (direct) =====
- === STEP 4 (mp to lo) ===
- === STEP 8 (direct) =====
- === STEP 4 (mp to lo) ===
- === STEP 8 (direct) =====
- === STEP 8 (direct) =====
- === STEP 4 (mp to lo) ===
- === STEP 8 (direct) =====
- === STEP 4 (mp to lo) ===
- === STEP 8 (direct) =====
- === STEP 8 (direct) =====
- === STEP 8 (direct) =====
- === STEP 4 (mp to lo) ===
- === STEP 4 (mp to lo) ===
- === STEP 4 (mp to lo) ===
- === STEP 4 (mp to lo) ===
- === STEP 4 (mp to lo) ===
- === STEP 4 (mp to lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 5 (split lo) ===
- === STEP 6 (eval mp) ====
- === STEP 7 (eval lo) ====
- sum(timeinfo)=
-  0.23212E-02
- nboxes=
-      33
- nsource=
-     100
- ntarget=
-     100
+    3272
  time in fmm main=
-  0.11313E-01
- lwlists=
-    2774
- lused total=
-    5150
- lused total(k)=
-       5
- lused total(M)=
-       0
- memory / point = 
-  0.51500E+02
+  0.97801E+00
  nsource=
-     100
+  100000
  ntarget=
-     100
+  100000
  after fmm, time (sec)=
-  0.16663E-01
+  0.10600E+01
  after fmm, speed (points+targets/sec)=
-  0.12003E+05
- after fmm, pot=
-  -.45360E+04  -.44627E+03  -.22292E+04  0.49868E+02  -.33558E+04  0.53795E+02
-  -.52587E+04  -.48921E+01  -.42187E+04  0.21589E+03  -.35867E+04  0.41365E+03
-  -.51171E+04  -.49953E+02  -.52581E+04  0.23734E+03  -.21532E+04  0.47494E+02
-  -.41282E+04  -.87234E+02  -.32168E+04  0.55580E+02  -.37207E+04  0.25800E+03
- directly, pot=
-  -.45360E+04  0.00000E+00  -.22292E+04  0.00000E+00  -.33558E+04  0.00000E+00
-  -.52587E+04  0.00000E+00  -.42187E+04  0.00000E+00  -.35867E+04  0.00000E+00
-  -.51171E+04  0.00000E+00  -.52581E+04  0.00000E+00  -.21532E+04  0.00000E+00
-  -.41282E+04  0.00000E+00  -.32168E+04  0.00000E+00  -.37207E+04  0.00000E+00
+  0.18867E+06
  directly, estimated time (sec)=
-  0.20166E-02
+  0.30758E+03
  directly, estimated speed (points/sec)=
-  0.49588E+05
+  0.32512E+03
  relative L2 error in potential=
-  0.53566E-01
+  0.10814E+00
  relative L2 error in re(potential)=
-  0.25446E-15
- after fmm, pottarg=
-  0.53938E+04  0.12066E+03  0.61952E+04  0.36243E+03  0.48107E+04  0.53120E+03
-  0.51894E+04  0.31749E+03  0.60129E+04  -.64884E+03  0.60458E+04  0.27885E+03
-  0.57593E+04  -.24705E+03  0.48971E+04  -.71029E+03  0.49695E+04  -.67256E+03
-  0.60168E+04  -.28347E+03  0.55537E+04  0.32110E+03  0.50972E+04  -.27677E+03
- directly, pottarg=
-  0.53938E+04  0.00000E+00  0.61952E+04  0.00000E+00  0.48107E+04  0.00000E+00
-  0.51894E+04  0.00000E+00  0.60129E+04  0.00000E+00  0.60458E+04  0.00000E+00
-  0.57593E+04  0.00000E+00  0.48971E+04  0.00000E+00  0.49695E+04  0.00000E+00
-  0.60168E+04  0.00000E+00  0.55537E+04  0.00000E+00  0.50972E+04  0.00000E+00
+  0.53761E-14
  directly, estimated time (sec)=
-  0.21160E-02
+  0.22858E+03
  directly, estimated speed (targets/sec)=
-  0.47260E+05
+  0.43748E+03
  relative L2 error in target potential=
-  0.79214E-01
+  0.67920E-01
  relative L2 error in target re(potential)=
-  0.32282E-15
+  0.81979E-14

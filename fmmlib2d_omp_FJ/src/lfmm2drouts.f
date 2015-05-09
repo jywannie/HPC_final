@@ -649,10 +649,11 @@ c               improvement in speed. CHUNK_SIZE2 is for p2t loops, and
 c               CHUNK_SIZE1 is for others. In future, should make these
 c               two variable as input, instead of parameter.
         integer CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L
+cccc        real *8 TIME_THREADS(32,64), tt(32)
 
-        CHUNK_SIZE_P2T = 10
-        CHUNK_SIZE_M2M = 10
-        CHUNK_SIZE_M2L = 10
+        CHUNK_SIZE_P2T = 1
+        CHUNK_SIZE_M2M = 1
+        CHUNK_SIZE_M2L = 1
 c               
 c
         ldc = 100
@@ -665,7 +666,7 @@ c     Suppressed if ifprint=0.
 c     Prints timing breakdown and other things if ifprint=1.
 c     Prints timing breakdown, list information, and other things if ifprint=2.
 c       
-        ifprint=1
+        ifprint=0
 c
          if (ifprint .ge. 1) 
      $     call prinf('=== STEP 3 (merge mp) ===*',i,0)
@@ -679,6 +680,7 @@ ccc         do 2200 ibox=nboxes,1,-1
 
 
 
+ccccc        tt(1) = second()
 
 C$OMP PARALLEL DEFAULT(SHARED)
 C$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
@@ -688,7 +690,8 @@ C$OMP$PRIVATE(list,nlists,nlist,itype)
 C$OMP$PRIVATE(ifdirect2)
 C$OMP$PRIVATE(htemp,ilist)
 C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
-C$OMP$PRIVATE(ibox2) 
+C$OMP$PRIVATE(ibox2)
+C$OMP$PRIVATE(tt)
 
 
          do 2300 ilev=nlev,3,-1
@@ -766,6 +769,7 @@ C$OMP END DO
 
 
  2300    continue
+
 c
 c
 ccc        call prinf('=== UPWARD PASS COMPLETE ===*',i,0)
@@ -806,7 +810,8 @@ c=============================================================================
 
         if( ifevalloc .eq. 0 ) goto 3300
 
-          call prinf('=== STEP 8 (direct) =====*',i,0)
+         if (ifprint .ge. 1) 
+     $     call prinf('=== STEP 8 (direct) =====*',i,0)
         t1=second()
 C$        t1=omp_get_wtime()
 c
@@ -888,7 +893,6 @@ c
  3300   continue
 c
 ccc        call prinf('=== DOWNWARD PASS COMPLETE ===*',i,0)
-
 
 
 
@@ -1144,9 +1148,14 @@ c
 C$        t2=omp_get_wtime()
 ccc     call prin2('time=*',t2-t1,1)
         timeinfo(5)=t2-t1
+
+
 c
 
 C$OMP END PARALLEL
+
+ccccc      tt(2) = second()
+ccccc      call prin2('Time in ')
 
 
         return

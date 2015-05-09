@@ -138,6 +138,8 @@ c        . . . construct the quad-tree structure for the user-specified
 c              set of points
 c
 c       size of real *8 must not exceed the size of two integers
+
+        ifprint = 0;
 c
         if( n .lt. 1 ) then
 c       number of particles less than one, abort
@@ -221,10 +223,13 @@ c
         iwlists=icorners+lcorners
         lwlists=lw-iwlists-6
 c
+
+        if (ifprint .eq. 1) then
         call prinf('lused: ccenters(k)=*', (lcenters+lcorners)/1000,1)
         call prinf('lused(k)=*', (iwlists)/1000,1)
         call d2tcentc(center,size,w(iboxes),nboxes,
      1      w(icenters),w(icorners) )
+        endif
 c
 c       now, construct all lists for all boxes
 c
@@ -235,7 +240,10 @@ ccc           call prinf('before d2tlsts, lwlists=*',lwlists,1)
 c
         lused777=lused+iwlists
 ccc        call prinf('after d2tlsts, ier=*',ier,1)
-        call prinf('lused(k)=*', (lused777)/1000,1)
+
+        if (ifprint .eq. 1)
+     $  call prinf('lused(k)=*', (lused777)/1000,1)
+
 c
 c       store all pointers
 c
@@ -380,6 +388,9 @@ c        . . . construct the quad-tree structure for the user-specified
 c              set of points
 c
 c       size of real *8 must not exceed the size of two integers
+
+
+        ifprint = 0
 c
         if( n .lt. 1 ) then
 c       number of particles less than one, abort
@@ -460,8 +471,10 @@ c
         iwlists=icorners+lcorners
         lwlists=lw-iwlists-6
 c
+        if (ifprint .eq. 1) theb
         call prinf('lused: ccenters(k)=*', (lcenters+lcorners)/1000,1)
         call prinf('lused(k)=*', (iwlists)/1000,1)
+        endif
         call d2tcentc(center,size,w(iboxes),nboxes,
      1      w(icenters),w(icorners) )
 c
@@ -474,7 +487,8 @@ ccc           call prinf('before d2tlsts, lwlists=*',lwlists,1)
 c
         lused777=lused+iwlists
 ccc        call prinf('after d2tlsts, ier=*',ier,1)
-        call prinf('lused(k)=*', (lused777)/1000,1)
+        if (ifprint .eq. 1)
+     $  call prinf('lused(k)=*', (lused777)/1000,1)
 c
 c       store all pointers
 c

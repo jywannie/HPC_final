@@ -53,8 +53,12 @@ c   SUNLI: Argument input
       endif
 
       if (iargc() .EQ. 0) then
-        print *, 'ENTER n'
-        read *, nsource
+      print *, 'ENTER n'
+      read *, nsource
+      CHUNK_SIZE_P2T = 1
+      CHUNK_SIZE_M2M = 1
+      CHUNK_SIZE_M2L = 1
+        
       endif
 c
             
@@ -208,7 +212,7 @@ c
         call prin2('source=*',source,3*nsource)
         endif
 
-        ifprint=1
+        ifprint=0
         if (ifprint .eq. 1) then
         if( ifpot.eq.1 ) call prin2('after fmm, pot=*',pot,2*m)
         if( ifgrad.eq.1 ) call prin2('after fmm, grad=*',grad,2*m)

@@ -346,7 +346,7 @@ c     ifprint is an internal information printing flag.
 c     Suppressed if ifprint=0.
 c     Prints timing breakdown and other things if ifprint=1.
 c       
-        ifprint=1
+        ifprint=0
 c
 c     set fmm tolerance based on iprec flag.
 c       
@@ -412,6 +412,7 @@ c     lused7 is counter that steps through workspace,
 c     keeping track of total memory used.
 c
         lused7=1
+        print *, "hahaha"
 c
 c
 c       ... prepare data structures 
@@ -604,7 +605,7 @@ C$        t1=omp_get_wtime()
      $     wlists(iwlists),lwlists)
         t2=second()
 C$        t2=omp_get_wtime()
-        if( ifprint .eq. 1 ) call prin2('time in fmm main=*',t2-t1,1)
+        if( ifprint .eq. 0 ) call prin2('time in fmm main=*',t2-t1,1)
 c
 c       parameter ier from targmain routine is currently meaningless, reset to 0
         if( ier .ne. 0 ) ier = 0
@@ -694,7 +695,7 @@ c     Suppressed if ifprint=0.
 c     Prints timing breakdown and other things if ifprint=1.
 c     Prints timing breakdown, list information, and other things if ifprint=2.
 c       
-        ifprint=1
+        ifprint=0
 c
 c
 c       ... set the potential and gradient to zero
