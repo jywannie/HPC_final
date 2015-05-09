@@ -184,3 +184,26 @@ C$OMP$PRIVATE(ifdirect2,)
 C$OMP$PRIVATE(htemp,ilist)
 C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
 
+
+
+
+
+
+
+
+
+C$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
+C$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
+C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,cd) 
+
+
+C$OMP$PRIVATE(list,nlists,nlist,itype)
+C$OMP$PRIVATE(ifdirect2)
+C$OMP$PRIVATE(htemp,ilist)
+C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
+
+
+C$OMP$PRIVATE(,list,nlist,npts)
+C$OMP$PRIVATE(ilist,itype) 
+
+

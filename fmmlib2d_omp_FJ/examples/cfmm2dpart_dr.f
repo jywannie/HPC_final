@@ -25,6 +25,13 @@ c
 c       
         complex *16 ima
         data ima/(0.0d0,1.0d0)/
+
+
+c       SUNLI: New variables
+        character (len = 32) :: arg
+        integer CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L
+
+
 c
 c
         done=1
@@ -36,9 +43,50 @@ c
         call prini(6,13)
 ccc        call prini(0,13)
 c
+
+c   SUNLI: Argument input
+
+      if (iargc() .NE. 0 .AND. iargc() .NE. 1 .AND.
+     $ iargc() .NE. 4) then
+      print *, 'Error: input either 1 argument, or 4 arguments'
+      stop
+      endif
+
+      if (iargc() .EQ. 0) then
         print *, 'ENTER n'
         read *, nsource
+      endif
 c
+            
+      if (iargc() .EQ. 1) then
+      call getarg(1, arg)
+      read (arg, *) nsource
+      CHUNK_SIZE_P2T = 1
+      CHUNK_SIZE_M2M = 1
+      CHUNK_SIZE_M2L = 1
+      endif
+
+
+      if (iargc() .EQ. 4) then
+      call getarg(1, arg)
+      read (arg, *) nsource
+      call getarg(2, arg)
+      read (arg, *) CHUNK_SIZE_P2T
+      call getarg(3, arg)
+      read (arg, *) CHUNK_SIZE_M2M
+      call getarg(4, arg)
+      read (arg, *) CHUNK_SIZE_M2L       
+      endif
+
+
+      print *, 'nsource = ',nsource
+      print *, 'CHUNK_SIZE_P2T = ',CHUNK_SIZE_P2
+      print *, 'CHUNK_SIZE_M2M = ',CHUNK_SIZE_M2M
+      print *, 'CHUNK_SIZE_M2L = ',CHUNK_SIZE_M2L
+
+
+
+
 c
         call prinf('nsource=*',nsource,1)
 c

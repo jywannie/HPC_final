@@ -644,6 +644,15 @@ c        integer nlist, npts, itype
         complex *16 gradtarg(*)
         complex *16 hesstarg(*)
 
+c       SUNLI: Test CHUNK_SIZE: see if change graularity gives any
+c               improvement in speed. CHUNK_SIZE2 is for p2t loops, and
+c               CHUNK_SIZE1 is for others. In future, should make these
+c               two variable as input, instead of parameter.
+        integer CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L
+
+        CHUNK_SIZE_P2T = 10
+        CHUNK_SIZE_M2M = 10
+        CHUNK_SIZE_M2L = 10
 c               
 c
         ldc = 100
@@ -685,7 +694,7 @@ C$OMP$PRIVATE(ibox2)
          do 2300 ilev=nlev,3,-1
 
 
-C$OMP DO SCHEDULE(DYNAMIC)
+C$OMP DO SCHEDULE(DYNAMIC, CHUNK_SIZE_M2M)
 
 
          do 2200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
@@ -803,7 +812,7 @@ C$        t1=omp_get_wtime()
 c
 c       ... step 8, evaluate direct interactions 
 c
-C$OMP DO SCHEDULE(DYNAMIC)
+C$OMP DO SCHEDULE(DYNAMIC, CHUNK_SIZE_P2T)
         do 3202 ibox2=1,nboxes
 c
         call d2tgetb(ier,ibox2,box,center0,corners0,wlists)
@@ -901,10 +910,14 @@ ccc        ntops=0
         call l2dterms_list2(epsfmm, itable, ier)
 c        call prinf('itable=*',itable,7*7)
 c
+
+
+
+
+C$OMP DO SCHEDULE(DYNAMIC, CHUNK_SIZE_M2L)
         do 4300 ilev=3,nlev+1
 c        t3=second()
 cC$        t3=omp_get_wtime()
-C$OMP DO SCHEDULE(DYNAMIC)
         do 4200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
         call d2tgetb(ier,ibox,box,center0,corners0,wlists)
         if (ifprint .ge. 2) then
@@ -1018,7 +1031,6 @@ c     $           nterms_trunc)
  4150       continue
         endif
  4200   continue
-C$OMP END DO NOWAIT
 
 
 
@@ -1036,6 +1048,7 @@ ccc        write(*,*) 'speed:', ntops/(second()-t1)
  4300   continue
 
 
+C$OMP END DO NOWAIT
 
 
 C$OMP BARRIER
@@ -1061,7 +1074,7 @@ ccc        do 5200 ibox=1,nboxes
 
 
 
-C$OMP DO SCHEDULE(DYNAMIC)
+C$OMP DO SCHEDULE(DYNAMIC, CHUNK_SIZE_M2M)
 
 
 
