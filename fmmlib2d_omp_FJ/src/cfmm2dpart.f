@@ -337,10 +337,12 @@ c
 
 c       SUNLI: NEW VARIABLES
         integer CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L
+        integer CHUNK_SIZE_P2M
 
         CHUNK_SIZE_P2T = 1
         CHUNK_SIZE_M2M = 1
         CHUNK_SIZE_M2L = 1
+        CHUNK_SIZE_P2M = 1
 
 
 c       
@@ -611,7 +613,8 @@ C$        t1=omp_get_wtime()
      $     epsfmm,w(iiaddr),wrmlexp(irmlexp),w(imptemp),lmptemp,
      $     nboxes,laddr,nlev,scale,bsize,nterms,
      $     wlists(iwlists),lwlists
-     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L,
+     $     CHUNK_SIZE_P2M)
         t2=second()
 C$        t2=omp_get_wtime()
         if( ifprint .eq. 0 ) call prin2('time in fmm main=*',t2-t1,1)
@@ -712,7 +715,8 @@ c
      $     ifpot,pot,ifgrad,grad,ifhess,hess,
      $     ntarget,target,ifpottarg,pottarg,ifgradtarg,gradtarg,
      $     ifhesstarg,hesstarg,
-     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L,
+     $     CHUNK_SIZE_P2M)   
         implicit real *8 (a-h,o-z)
 c       
 c       Generalized Cauchy FMM in R^2: evaluate all pairwise particle
@@ -841,6 +845,7 @@ c
 
 c       SUNLI: NEW VARIABLES
         integer CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L
+        integer CHUNK_SIZE_P2M
 c       
         ier=0
         lused7=0
@@ -1110,7 +1115,8 @@ C$        t1=omp_get_wtime()
      $     epsfmm,w(iiaddr),wrmlexp(irmlexp),w(imptemp),lmptemp,
      $     nboxes,laddr,nlev,scale,bsize,nterms,
      $     wlists(iwlists),lwlists,
-     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L,
+     $     CHUNK_SIZE_P2M)   
         t2=second()
 C$        t2=omp_get_wtime()
         if( ifprint .eq. 0 ) call prin2('time in fmm main=*',t2-t1,1)
@@ -1160,7 +1166,8 @@ c
      $     epsfmm,iaddr,rmlexp,mptemp,lmptemp,
      $     nboxes,laddr,nlev,scale,bsize,nterms,
      $     wlists,lwlists,
-     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L,
+     $     CHUNK_SIZE_P2M)
         implicit real *8 (a-h,o-z)
         real *8 sourcesort(2,*)
         integer isource(*)
@@ -1198,6 +1205,7 @@ c
 
 c       SUNLI: NEW VARIABLES
         integer CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L        
+        integer CHUNK_SIZE_P2M
 ccc        save
 c
 c
@@ -1276,7 +1284,7 @@ c
 C$OMP PARALLEL DO DEFAULT(SHARED)
 C$OMP$PRIVATE(ibox,box,center0,corners0,level,npts,nkids,radius)
 C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,gtemp,htemp,cd) 
-C$OMP$SCHEDULE(DYNAMIC)
+C$OMP$SCHEDULE(DYNAMIC, CHUNK_SIZE_P2M)
 cccC$OMP$NUM_THREADS(1) 
         do 1200 ibox=1,nboxes
 c
@@ -1560,7 +1568,7 @@ c       and all gradients directly
 c
 C$OMP PARALLEL DO DEFAULT(SHARED)
 C$OMP$PRIVATE(ibox,box,center0,corners0,level,npts,nkids,ier)
-C$OMP$SCHEDULE(DYNAMIC)
+C$OMP$SCHEDULE(DYNAMIC, CHUNK_SIZE_P2M)
 cccC$OMP$NUM_THREADS(1) 
         do 6201 ibox=1,nboxes
 c

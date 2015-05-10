@@ -33,6 +33,7 @@ c
 c       SUNLI: New variables
         character (len = 32) :: arg
         integer CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L
+        integer CHUNK_SIZE_P2M
 
 
 c
@@ -50,8 +51,8 @@ c
 c   SUNLI: Argument input
 
       if (iargc() .NE. 0 .AND. iargc() .NE. 1 .AND.
-     $ iargc() .NE. 4) then
-      print *, 'Error: input either 1 argument, or 4 arguments'
+     $ iargc() .NE. 5) then
+      print *, 'Error: input either 1 argument, or 5 arguments'
       stop
       endif
 
@@ -61,6 +62,7 @@ c   SUNLI: Argument input
       CHUNK_SIZE_P2T = 1
       CHUNK_SIZE_M2M = 1
       CHUNK_SIZE_M2L = 1
+      CHUNK_SIZE_P2M = 1
         
       endif
 c
@@ -71,10 +73,11 @@ c
       CHUNK_SIZE_P2T = 1
       CHUNK_SIZE_M2M = 1
       CHUNK_SIZE_M2L = 1
+      CHUNK_SIZE_P2M = 1
       endif
 
 
-      if (iargc() .EQ. 4) then
+      if (iargc() .EQ. 5) then
       call getarg(1, arg)
       read (arg, *) nsource
       call getarg(2, arg)
@@ -83,6 +86,8 @@ c
       read (arg, *) CHUNK_SIZE_M2M
       call getarg(4, arg)
       read (arg, *) CHUNK_SIZE_M2L       
+      call getarg(5, arg)
+      read (arg, *) CHUNK_SIZE_P2M       
       endif
 
 
@@ -90,6 +95,7 @@ c
       print *, 'CHUNK_SIZE_P2T = ',CHUNK_SIZE_P2T
       print *, 'CHUNK_SIZE_M2M = ',CHUNK_SIZE_M2M
       print *, 'CHUNK_SIZE_M2L = ',CHUNK_SIZE_M2L
+      print *, 'CHUNK_SIZE_P2M = ',CHUNK_SIZE_P2M
 
 
 
@@ -194,7 +200,8 @@ c
      $     ifpot,pot,ifgrad,grad,ifhess,hess,
      $     ntarget,target,ifpottarg,pottarg,ifgradtarg,gradtarg,
      $     ifhesstarg,hesstarg,
-     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L,
+     $     CHUNK_SIZE_P2M)
 c       
         t2=second()
 C$        t2=omp_get_wtime()
