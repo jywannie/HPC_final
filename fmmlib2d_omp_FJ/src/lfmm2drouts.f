@@ -690,11 +690,24 @@ c
 c       ... step 1, locate all charges, assign them to boxes, and
 c       form multipole expansions
 c
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level,npts,nkids,radius)
-C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,gtemp,htemp,cd) 
-C$OMP$SCHEDULE(DYNAMIC, CHUNK_SIZE_P2M)
-cccC$OMP$NUM_THREADS(1) 
+
+
+C$OMP PARALLEL DEFAULT(SHARED)
+C$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
+C$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
+C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,cd) 
+C$OMP$PRIVATE(list,nlists,nlist,itype)
+C$OMP$PRIVATE(ifdirect2)
+C$OMP$PRIVATE(htemp,ilist)
+C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
+C$OMP$PRIVATE(ibox2)
+C$OMP$PRIVATE(gtemp)
+C$OMP$PRIVATE(tt)
+
+
+
+
+C$OMP DO SCHEDULE(DYNAMIC, CHUNK_SIZE_P2M)
         do 1200 ibox=1,nboxes
 c
         call d2tgetb(ier,ibox,box,center0,corners0,wlists)
@@ -758,7 +771,7 @@ c
          endif
 c
  1200    continue
-C$OMP END PARALLEL DO
+C$OMP END DO
  1300    continue
 
 
@@ -782,16 +795,6 @@ ccc         do 2200 ibox=nboxes,1,-1
 
 ccccc        tt(1) = second()
 
-C$OMP PARALLEL DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
-C$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
-C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,cd) 
-C$OMP$PRIVATE(list,nlists,nlist,itype)
-C$OMP$PRIVATE(ifdirect2)
-C$OMP$PRIVATE(htemp,ilist)
-C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
-C$OMP$PRIVATE(ibox2)
-C$OMP$PRIVATE(tt)
 
 
          do 2300 ilev=nlev,3,-1
