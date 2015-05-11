@@ -1,44 +1,44 @@
  OMP_GET_MAX_THREADS = 
        4
  nsource=
-      10
+  100000
  ntarget=
-      10
+  100000
  iprec=
        4
  time in d2tallbem=
-  0.15998E-03
+  0.44804E-01
  lused: ccenters(k)=
-       0
+     478
  lused(k)=
-       0
+     838
  time in d2tlsts=
-  0.10967E-04
+  0.26483E-01
  lused(k)=
-       0
+    3272
  time in fmm main=
-  0.27368E-02
+  0.85513E+00
  nsource=
-      10
+  100000
  ntarget=
-      10
+  100000
  after fmm, time (sec)=
-  0.39890E-02
+  0.94435E+00
  after fmm, speed (points+targets/sec)=
-  0.50138E+04
+  0.21179E+06
  directly, estimated time (sec)=
-  0.74863E-04
+  0.23550E+03
  directly, estimated speed (points/sec)=
-  0.13358E+06
+  0.42463E+03
  relative L2 error in potential=
-  0.00000E+00
+  0.10814E+00
  relative L2 error in re(potential)=
-  0.00000E+00
+  0.53761E-14
  directly, estimated time (sec)=
-  0.63181E-04
+  0.22234E+03
  directly, estimated speed (targets/sec)=
-  0.15828E+06
+  0.44976E+03
  relative L2 error in target potential=
-  0.00000E+00
+  0.67920E-01
  relative L2 error in target re(potential)=
-  0.00000E+00
+  0.81979E-14

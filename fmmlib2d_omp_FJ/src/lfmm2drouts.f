@@ -606,7 +606,9 @@ C$OMP END PARALLEL
      $     dipstrsort,ifpot,pot,ifgrad,grad,ifhess,hess,
      $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
      $     ifhesstarg,hesstarg,ifevalloc,
-     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L,
+     $     CHUNK_SIZE_P2M)
+
         implicit real *8 (a-h,o-z)
 c
         integer iaddr(2,*),laddr(2,*),nterms(0:*)
@@ -650,6 +652,7 @@ c               improvement in speed. CHUNK_SIZE2 is for p2t loops, and
 c               CHUNK_SIZE1 is for others. In future, should make these
 c               two variable as input, instead of parameter.
         integer CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L
+        integer CHUNK_SIZE_P2M
 cccc        real *8 TIME_THREADS(32,64), tt(32)
 
 c        CHUNK_SIZE_P2T = 1
@@ -670,6 +673,100 @@ c     Prints timing breakdown and other things if ifprint=1.
 c     Prints timing breakdown, list information, and other things if ifprint=2.
 c       
         ifprint=0
+
+c=============================================================================
+c   SUNLI: Put P2M computation here so that we can change it to
+c          task-based parallel model.
+c=============================================================================
+
+
+
+
+        if(ifprint .ge. 1) 
+     $     call prinf('=== STEP 1 (form mp) ====*',i,0)
+        t1=second()
+C$        t1=omp_get_wtime()
+c
+c       ... step 1, locate all charges, assign them to boxes, and
+c       form multipole expansions
+c
+C$OMP PARALLEL DO DEFAULT(SHARED)
+C$OMP$PRIVATE(ibox,box,center0,corners0,level,npts,nkids,radius)
+C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,gtemp,htemp,cd) 
+C$OMP$SCHEDULE(DYNAMIC, CHUNK_SIZE_P2M)
+cccC$OMP$NUM_THREADS(1) 
+        do 1200 ibox=1,nboxes
+c
+        call d2tgetb(ier,ibox,box,center0,corners0,wlists)
+        call d2tnkids(box,nkids)
+c
+        level=box(1)
+        if( level .lt. 2 ) goto 1200
+c
+c
+        if (ifprint .ge. 2) then
+           call prinf('ibox=*',ibox,1)
+           call prinf('box=*',box,15)
+           call prinf('nkids=*',nkids,1)
+        endif
+c
+        if (nkids .eq. 0) then
+c        ipts=box(9)
+c        npts=box(10)
+c        call prinf('ipts=*',ipts,1)
+c        call prinf('npts=*',npts,1)
+        npts=box(10)
+        if (ifprint .ge. 2) then
+           call prinf('npts=*',npts,1)
+           call prinf('isource=*',isource(box(9)),box(10))
+        endif
+        endif
+c
+c       ... prune all sourceless boxes
+c
+        if( box(10) .eq. 0 ) goto 1200
+c
+        if (nkids .eq. 0) then
+c
+c       ... form multipole expansions
+c
+	    radius = (corners0(1,1) - center0(1))**2
+	    radius = radius + (corners0(2,1) - center0(2))**2
+	    radius = sqrt(radius)
+c
+            call l2dzero(rmlexp(iaddr(1,ibox)),nterms(level))
+            if_use_trunc = 0
+
+            if( ifcharge .eq. 1 ) then
+            call l2dformmp(ier,scale(level),sourcesort(1,box(9)),
+     1  	chargesort(box(9)),npts,center0,nterms(level),
+     2          rmlexp(iaddr(1,ibox)))        
+            endif
+c 
+cc               call prin2('after formmp, rmlexp=*',
+cc     $            rmlexp(iaddr(1,ibox)),2*(2*nterms(level)+1))
+c
+            if (ifdipole .eq. 1 ) then
+               call l2dzero(mptemp,nterms(level))
+               call l2dformmp_dp(ier,scale(level),
+     $           sourcesort(1,box(9)),
+     1           dipstrsort(box(9)),
+     $           npts,center0,nterms(level),
+     2           mptemp)
+              call l2dadd(mptemp,rmlexp(iaddr(1,ibox)),nterms(level))
+            endif
+         endif
+c
+ 1200    continue
+C$OMP END PARALLEL DO
+ 1300    continue
+
+
+
+
+
+
+
 c
          if (ifprint .ge. 1) 
      $     call prinf('=== STEP 3 (merge mp) ===*',i,0)

@@ -1273,89 +1273,89 @@ C$OMP END PARALLEL DO
 c
 c
         
-        if(ifprint .ge. 1) 
-     $     call prinf('=== STEP 1 (form mp) ====*',i,0)
-        t1=second()
-C$        t1=omp_get_wtime()
-c
-c       ... step 1, locate all charges, assign them to boxes, and
-c       form multipole expansions
-c
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level,npts,nkids,radius)
-C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,gtemp,htemp,cd) 
-C$OMP$SCHEDULE(DYNAMIC, CHUNK_SIZE_P2M)
-cccC$OMP$NUM_THREADS(1) 
-        do 1200 ibox=1,nboxes
-c
-        call d2tgetb(ier,ibox,box,center0,corners0,wlists)
-        call d2tnkids(box,nkids)
-c
-        level=box(1)
-        if( level .lt. 2 ) goto 1200
-c
-c
-        if (ifprint .ge. 2) then
-           call prinf('ibox=*',ibox,1)
-           call prinf('box=*',box,15)
-           call prinf('nkids=*',nkids,1)
-        endif
-c
-        if (nkids .eq. 0) then
-c        ipts=box(9)
-c        npts=box(10)
-c        call prinf('ipts=*',ipts,1)
-c        call prinf('npts=*',npts,1)
-        npts=box(10)
-        if (ifprint .ge. 2) then
-           call prinf('npts=*',npts,1)
-           call prinf('isource=*',isource(box(9)),box(10))
-        endif
-        endif
-c
-c       ... prune all sourceless boxes
-c
-        if( box(10) .eq. 0 ) goto 1200
-c
-        if (nkids .eq. 0) then
-c
-c       ... form multipole expansions
-c
-	    radius = (corners0(1,1) - center0(1))**2
-	    radius = radius + (corners0(2,1) - center0(2))**2
-	    radius = sqrt(radius)
-c
-            call l2dzero(rmlexp(iaddr(1,ibox)),nterms(level))
-            if_use_trunc = 0
+ccc        if(ifprint .ge. 1) 
+ccc     $     call prinf('=== STEP 1 (form mp) ====*',i,0)
+ccc        t1=second()
+cccC$        t1=omp_get_wtime()
+cccc
+cccc       ... step 1, locate all charges, assign them to boxes, and
+cccc       form multipole expansions
+cccc
+cccC$OMP PARALLEL DO DEFAULT(SHARED)
+cccC$OMP$PRIVATE(ibox,box,center0,corners0,level,npts,nkids,radius)
+cccC$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,gtemp,htemp,cd) 
+cccC$OMP$SCHEDULE(DYNAMIC, CHUNK_SIZE_P2M)
+ccccccC$OMP$NUM_THREADS(1) 
+ccc        do 1200 ibox=1,nboxes
+cccc
+ccc        call d2tgetb(ier,ibox,box,center0,corners0,wlists)
+ccc        call d2tnkids(box,nkids)
+cccc
+ccc       level=box(1)
+ccc        if( level .lt. 2 ) goto 1200
+cccc
+cccc
+ccc        if (ifprint .ge. 2) then
+ccc           call prinf('ibox=*',ibox,1)
+ccc           call prinf('box=*',box,15)
+ccc           call prinf('nkids=*',nkids,1)
+ccc        endif
+cccc
+ccc        if (nkids .eq. 0) then
+cccc        ipts=box(9)
+cccc        npts=box(10)
+cccc        call prinf('ipts=*',ipts,1)
+cccc        call prinf('npts=*',npts,1)
+ccc        npts=box(10)
+ccc        if (ifprint .ge. 2) then
+ccc           call prinf('npts=*',npts,1)
+ccc           call prinf('isource=*',isource(box(9)),box(10))
+ccc        endif
+ccc        endif
+cccc
+cccc       ... prune all sourceless boxes
+cccc
+ccc        if( box(10) .eq. 0 ) goto 1200
+cccc
+ccc        if (nkids .eq. 0) then
+cccc
+cccc       ... form multipole expansions
+cccc
+ccc	    radius = (corners0(1,1) - center0(1))**2
+ccc	    radius = radius + (corners0(2,1) - center0(2))**2
+ccc	    radius = sqrt(radius)
+cccc
+ccc            call l2dzero(rmlexp(iaddr(1,ibox)),nterms(level))
+ccc            if_use_trunc = 0
 
-            if( ifcharge .eq. 1 ) then
-            call l2dformmp(ier,scale(level),sourcesort(1,box(9)),
-     1  	chargesort(box(9)),npts,center0,nterms(level),
-     2          rmlexp(iaddr(1,ibox)))        
-            endif
-c 
-cc               call prin2('after formmp, rmlexp=*',
-cc     $            rmlexp(iaddr(1,ibox)),2*(2*nterms(level)+1))
+ccc            if( ifcharge .eq. 1 ) then
+ccc            call l2dformmp(ier,scale(level),sourcesort(1,box(9)),
+ccc     1  	chargesort(box(9)),npts,center0,nterms(level),
+ccc     2          rmlexp(iaddr(1,ibox)))        
+ccc            endif
+cccc 
+ccccc               call prin2('after formmp, rmlexp=*',
+ccccc     $            rmlexp(iaddr(1,ibox)),2*(2*nterms(level)+1))
+cccc
+ccc            if (ifdipole .eq. 1 ) then
+ccc               call l2dzero(mptemp,nterms(level))
+ccc               call l2dformmp_dp(ier,scale(level),
+ccc     $           sourcesort(1,box(9)),
+ccc     1           dipstrsort(box(9)),
+ccc     $           npts,center0,nterms(level),
+ccc     2           mptemp)
+ccc              call l2dadd(mptemp,rmlexp(iaddr(1,ibox)),nterms(level))
+ccc            endif
+ccc         endif
+cccc
+ccc 1200    continue
+cccC$OMP END PARALLEL DO
+ccc 1300    continue
 c
-            if (ifdipole .eq. 1 ) then
-               call l2dzero(mptemp,nterms(level))
-               call l2dformmp_dp(ier,scale(level),
-     $           sourcesort(1,box(9)),
-     1           dipstrsort(box(9)),
-     $           npts,center0,nterms(level),
-     2           mptemp)
-              call l2dadd(mptemp,rmlexp(iaddr(1,ibox)),nterms(level))
-            endif
-         endif
-c
- 1200    continue
-C$OMP END PARALLEL DO
- 1300    continue
-c
-         t2=second()
+ccc         t2=second()
 C$        t2=omp_get_wtime()
 ccc        call prin2('time=*',t2-t1,1)
-         timeinfo(1)=t2-t1
+ccc         timeinfo(1)=t2-t1
 c       
          if(ifprint .ge. 1)
      $      call prinf('=== STEP 2 (form lo) ====*',i,0)
@@ -1466,7 +1466,8 @@ c
      $     dipstrsort,ifpot,pot,ifgrad,grad,ifhess,hess,
      $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
      $     ifhesstarg,hesstarg,ifevalloc,
-     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L)
+     $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L,
+     $     CHUNK_SIZE_P2M)
 c
         if(ifprint .ge. 1)
      $     call prinf('=== STEP 6 (eval mp) ====*',i,0)
