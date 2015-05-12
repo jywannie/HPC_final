@@ -703,6 +703,7 @@ C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj)
 C$OMP$PRIVATE(ibox2)
 C$OMP$PRIVATE(gtemp)
 C$OMP$PRIVATE(tt)
+C$OMP$PRIVATE(ibox_start, nCHUNK_LEFT)
 
 
 
@@ -920,68 +921,43 @@ C$        t1=omp_get_wtime()
 c
 c       ... step 8, evaluate direct interactions 
 c
-C$OMP DO SCHEDULE(DYNAMIC, CHUNK_SIZE_P2T)
-        do 3202 ibox2=1,nboxes
-c
-        call d2tgetb(ier,ibox2,box,center0,corners0,wlists)
-        call d2tnkids(box,nkids)
-c
-        if (ifprint .ge. 2) then
-           call prinf('ibox2=*',ibox2,1)
-           call prinf('box=*',box,15)
-           call prinf('nkids=*',nkids,1)
-        endif
-c
-        if (nkids .eq. 0) then
-            npts=box(10)
-            if (ifprint .ge. 2) then
-               call prinf('npts=*',npts,1)
-               call prinf('isource=*',isource(box(9)),box(10))
-            endif
-        endif
-c
-c
-        if (nkids .eq. 0) then
-c
-c       ... evaluate self interactions
-c
-        call cfmm2dpart_direct_self_sym(box,sourcesort,
-     $     ifcharge,chargesort,ifdipole,dipstrsort,
+
+c       SUNLI: Not task-based yet. Need to change omp do loop to
+c         omp single/section and omp task inside the loop
+c        [TASK-BASED]
+
+
+C$OMP SINGLE
+        do 3202 ibox_start=1,nboxes,CHUNK_SIZE_P2T
+C$OMP TASK DEFAULT(SHARED)
+
+          call P2T_task (ibox_start, CHUNK_SIZE_P2T, wlists,
+     $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
      $     ifpot,pot,ifgrad,grad,ifhess,hess,
      $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
      $     ifhesstarg,hesstarg)
+C$OMP END TASK
+
 c
-c
-c       ... retrieve list #1
-c
-c       ... evaluate interactions with the nearest neighbours
-c
-        itype=1
-        call d2tgetl(ier,ibox2,itype,list,nlist,wlists)
-        if (ifprint .ge. 2) call prinf('list1=*',list,nlist)
-c
-c       ... for all pairs in list #1, 
-c       evaluate the potentials and gradients directly
-c
-            do 3203 ilist=1,nlist
-               jbox=list(ilist)
-               call d2tgetb(ier,jbox,box1,center1,corners1,wlists)
-c
-c       ... prune all sourceless boxes
-c
-         if( box1(10) .eq. 0 ) goto 3203
-c    
-            call cfmm2dpart_direct(box1,box,sourcesort,
-     $         ifcharge,chargesort,ifdipole,dipstrsort,
-     $         ifpot,pot,ifgrad,grad,ifhess,hess,
-     $         targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
-     $         ifhesstarg,hesstarg)
-c
- 3203       continue
-        endif
 c
  3202   continue
-C$OMP END DO NOWAIT
+
+C$OMP END SINGLE NOWAIT
+
+c     SUNLI: compute leftover
+
+C$OMP TASK DEFAULT(SHARED)
+      nCHUNK_LEFT = nboxes - ibox_start + 1
+          call P2T_task (ibox_start, nCHUNK_LEFT, wlists,
+     $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
+     $     ifpot,pot,ifgrad,grad,ifhess,hess,
+     $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
+     $     ifhesstarg,hesstarg)
+
+C$OMP END TASK
+
+C$OMP BARRIER
+
 c
 ccc        call prin2('inside fmm, pot=*',pot,2*nsource)
 ccc        call prin2('inside fmm, grad=*',grad,2*nsource)
@@ -1494,3 +1470,115 @@ c
         return
         end
         
+
+
+
+
+c=============================================================================
+c     SUNLI:  This is the end of auxiliary routines and beginning of
+c             subroutine for task-based parallel model. 
+c
+c=============================================================================
+
+
+      subroutine P2T_task
+     $    (ibox_start, CHUNK_SIZE_P2T,
+     $     wlists,
+     $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
+     $     ifpot,pot,ifgrad,grad,ifhess,hess,
+     $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
+     $     ifhesstarg,hesstarg)
+
+        implicit real *8 (a-h,o-z)
+c
+c
+        integer ibox_start, CHUNK_SIZE_P2T
+
+        real *8 wlists(*)
+
+        real *8 sourcesort(2,*)
+        complex *16 chargesort(*),dipstrsort(*)
+        real *8 targetsort(2,*)
+c
+        complex *16 pot(*),grad(*),hess(*)
+        complex *16 pottarg(*),gradtarg(*),hesstarg(*)
+
+
+        complex *16 ptemp,gtemp,htemp
+        integer list(10 000)
+        real *8 center0(2),corners0(2,4)
+        real *8 center1(2),corners1(2,4)        
+        integer box(15),box1(15)
+
+c 
+        ibox_end = ibox_start + CHUNK_SIZE_P2T - 1
+
+        do ibox2 = ibox_start, ibox_end
+
+        call d2tgetb(ier,ibox2,box,center0,corners0,wlists)
+        call d2tnkids(box,nkids)
+c
+        if (ifprint .ge. 2) then
+           call prinf('ibox2=*',ibox2,1)
+           call prinf('box=*',box,15)
+           call prinf('nkids=*',nkids,1)
+        endif
+c
+        if (nkids .eq. 0) then
+            npts=box(10)
+            if (ifprint .ge. 2) then
+               call prinf('npts=*',npts,1)
+               call prinf('isource=*',isource(box(9)),box(10))
+            endif
+        endif
+c
+c
+        if (nkids .eq. 0) then
+c
+c       ... evaluate self interactions
+c
+        call cfmm2dpart_direct_self_sym(box,sourcesort,
+     $     ifcharge,chargesort,ifdipole,dipstrsort,
+     $     ifpot,pot,ifgrad,grad,ifhess,hess,
+     $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
+     $     ifhesstarg,hesstarg)
+c
+c
+c       ... retrieve list #1
+c
+c       ... evaluate interactions with the nearest neighbours
+c
+        itype=1
+        call d2tgetl(ier,ibox2,itype,list,nlist,wlists)
+        if (ifprint .ge. 2) call prinf('list1=*',list,nlist)
+c
+c       ... for all pairs in list #1, 
+c       evaluate the potentials and gradients directly
+c
+            do 9903 ilist=1,nlist
+               jbox=list(ilist)
+               call d2tgetb(ier,jbox,box1,center1,corners1,wlists)
+c
+c       ... prune all sourceless boxes
+c
+         if( box1(10) .eq. 0 ) goto 9903
+c    
+            call cfmm2dpart_direct(box1,box,sourcesort,
+     $         ifcharge,chargesort,ifdipole,dipstrsort,
+     $         ifpot,pot,ifgrad,grad,ifhess,hess,
+     $         targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
+     $         ifhesstarg,hesstarg)
+c
+ 9903       continue
+        endif
+
+
+      
+
+
+
+      enddo !ibox2
+
+
+      return
+      end
