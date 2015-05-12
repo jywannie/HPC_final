@@ -1553,21 +1553,20 @@ c
 c       ... for all pairs in list #1, 
 c       evaluate the potentials and gradients directly
 c
-            do 9903 ilist=1,nlist
+            do ilist=1,nlist
                jbox=list(ilist)
                call d2tgetb(ier,jbox,box1,center1,corners1,wlists)
 c
 c       ... prune all sourceless boxes
 c
-         if( box1(10) .eq. 0 ) goto 9903
-c    
-            call cfmm2dpart_direct(box1,box,sourcesort,
+         if( box1(10) .ne. 0 )
+     $      call cfmm2dpart_direct(box1,box,sourcesort,
      $         ifcharge,chargesort,ifdipole,dipstrsort,
      $         ifpot,pot,ifgrad,grad,ifhess,hess,
      $         targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
      $         ifhesstarg,hesstarg)
 c
- 9903       continue
+          enddo !ilist
         endif
 
 

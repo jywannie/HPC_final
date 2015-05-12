@@ -7,37 +7,37 @@
  iprec=
        4
  time in d2tallbem=
-  0.16689E-03
+  0.16212E-03
  lused: ccenters(k)=
        0
  lused(k)=
        0
  time in d2tlsts=
-  0.12875E-04
+  0.13113E-04
  lused(k)=
        0
  time in fmm main=
-  0.36740E-02
+  0.36950E-02
  nsource=
       10
  ntarget=
       10
  after fmm, time (sec)=
-  0.51701E-02
+  0.52299E-02
  after fmm, speed (points+targets/sec)=
-  0.38684E+04
+  0.38241E+04
  directly, estimated time (sec)=
-  0.66042E-04
+  0.62943E-04
  directly, estimated speed (points/sec)=
-  0.15142E+06
+  0.15888E+06
  relative L2 error in potential=
   0.00000E+00
  relative L2 error in re(potential)=
   0.00000E+00
  directly, estimated time (sec)=
-  0.67949E-04
+  0.72002E-04
  directly, estimated speed (targets/sec)=
-  0.14717E+06
+  0.13888E+06
  relative L2 error in target potential=
   0.00000E+00
  relative L2 error in target re(potential)=
