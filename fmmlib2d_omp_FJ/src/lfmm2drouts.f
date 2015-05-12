@@ -928,7 +928,7 @@ c        [TASK-BASED]
 
 
 C$OMP SINGLE
-        do 3202 ibox_start=1,nboxes,CHUNK_SIZE_P2T
+        do 3202 ibox_start=1,nboxes - CHUNK_SIZE_P2T,CHUNK_SIZE_P2T
 C$OMP TASK DEFAULT(SHARED)
 
           call P2T_task (ibox_start, CHUNK_SIZE_P2T, wlists,
@@ -938,16 +938,14 @@ C$OMP TASK DEFAULT(SHARED)
      $     ifhesstarg,hesstarg)
 C$OMP END TASK
 
-c
-c
  3202   continue
-
-C$OMP END SINGLE NOWAIT
 
 c     SUNLI: compute leftover
 
+      print *, "ibox_start = ",ibox_start
+      print *, "nboxes = ",nboxes
+      nCHUNK_LEFT = nboxes - ibox_start  + 1
 C$OMP TASK DEFAULT(SHARED)
-      nCHUNK_LEFT = nboxes - ibox_start + 1
           call P2T_task (ibox_start, nCHUNK_LEFT, wlists,
      $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
      $     ifpot,pot,ifgrad,grad,ifhess,hess,
@@ -956,7 +954,7 @@ C$OMP TASK DEFAULT(SHARED)
 
 C$OMP END TASK
 
-C$OMP BARRIER
+C$OMP END SINGLE
 
 c
 ccc        call prin2('inside fmm, pot=*',pot,2*nsource)
