@@ -705,18 +705,89 @@ C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj)
 C$OMP$PRIVATE(ibox2)
 C$OMP$PRIVATE(gtemp)
 C$OMP$PRIVATE(tt)
-C$OMP$PRIVATE(ibox_start, nCHUNK_LEFT, ibox_start2)
+C$OMP$PRIVATE(ibox_start, nCHUNK_LEFT, ibox_start2,ichunk)
 
+
+c=============================================================================
+c   SUNLI: Put P2T computation here: since it is independent to any
+c          other steps, we are free to put it anywhere. One good
+c          strategy is to put it between M2M and M2L -- since M2L is
+c          independent between levels, we can put NOWAIT for both P2T
+c          and M2L and synchronize before starting L2L
+c=============================================================================
+
+        if( ifevalloc .eq. 0 ) goto 1030
+
+         if (ifprint .ge. 1) 
+     $     call prinf('=== STEP 8 (direct) =====*',i,0)
+        t1=second()
+C$        t1=omp_get_wtime()
+c
+c       ... step 8, evaluate direct interactions 
+c
+
+c       SUNLI: Not task-based yet. Need to change omp do loop to
+c         omp single/section and omp task inside the loop
+c        [TASK-BASED]
+
+
+C$OMP SINGLE
+        do 1020 ichunk=1,nboxes / CHUNK_SIZE_P2T
+          ibox_start = (ichunk-1) * CHUNK_SIZE_P2T + 1
+C$OMP TASK DEFAULT(SHARED)
+C$OMP$FIRSTPRIVATE(ibox_start)
+
+          call P2T_task (ibox_start, CHUNK_SIZE_P2T, wlists,
+     $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
+     $     ifpot,pot,ifgrad,grad,ifhess,hess,
+     $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
+     $     ifhesstarg,hesstarg)
+C$OMP END TASK
+
+ 1020   continue
+
+c     SUNLI: compute leftover
+
+        ibox_start2 = nboxes / CHUNK_SIZE_P2M * CHUNK_SIZE_P2M + 1
+        nCHUNK_LEFT = nboxes - ibox_start2  + 1
+
+c      print *, "ibox_start2 = ",ibox_start2
+c      print *, "nboxes = ",nboxes
+      
+C$OMP TASK DEFAULT(SHARED)
+C$OMP$FIRSTPRIVATE(ibox_start2)
+          call P2T_task (ibox_start2, nCHUNK_LEFT, wlists,
+     $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
+     $     ifpot,pot,ifgrad,grad,ifhess,hess,
+     $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
+     $     ifhesstarg,hesstarg)
+
+C$OMP END TASK
+
+C$OMP END SINGLE
+
+c
+ccc        call prin2('inside fmm, pot=*',pot,2*nsource)
+ccc        call prin2('inside fmm, grad=*',grad,2*nsource)
+ccc        call prin2('inside fmm, hess=*',hess,2*nsource)
+c
+c
+        t2=second()
+C$        t2=omp_get_wtime()
+ccc     call prin2('time=*',t2-t1,1)
+        timeinfo(8)=t2-t1
+c
+ 1030   continue
+c
+ccc        call prinf('=== DOWNWARD PASS COMPLETE ===*',i,0)
 
 
 
 C$OMP SINGLE
 
-cccccC$OMP DO SCHEDULE(DYNAMIC)
+        do 1200 ichunk=1,nboxes / CHUNK_SIZE_P2M
 
-        do 1200 i=1,nboxes / CHUNK_SIZE_P2M
-
-          ibox_start = (i-1) * CHUNK_SIZE_P2M + 1
+          ibox_start = (ichunk-1) * CHUNK_SIZE_P2M + 1
 c          call prinf("ibox_start = *", ibox_start,1)
 
 C$OMP TASK DEFAULT(SHARED)
@@ -730,8 +801,6 @@ C$OMP$FIRSTPRIVATE(ibox_start)
 C$OMP END TASK
 
  1200    continue
-
-cccccC$OMP END DO
 
         ibox_start2 = nboxes / CHUNK_SIZE_P2M * CHUNK_SIZE_P2M + 1
         nCHUNK_LEFT = nboxes - ibox_start2  + 1
@@ -756,8 +825,6 @@ C$OMP END SINGLE
 
 
 
-C$OMP BARRIER
-
 
 
 
@@ -765,18 +832,8 @@ c
          if (ifprint .ge. 1) 
      $     call prinf('=== STEP 3 (merge mp) ===*',i,0)
          t1=second()
-C$        t1=omp_get_wtime()
-c
 c       ... step 3, merge all multipole expansions
 c       
-ccc         do 2200 ibox=nboxes,1,-1
-
-
-
-
-ccccc        tt(1) = second()
-
-
 
          do 2300 ilev=nlev,3,-1
 
@@ -883,79 +940,6 @@ C$        t2=omp_get_wtime()
 ccc        call prin2('time=*',t2-t1,1)
          timeinfo(3)=t2-t1
 
-
-c=============================================================================
-c   SUNLI: Put P2T computation here: since it is independent to any
-c          other steps, we are free to put it anywhere. One good
-c          strategy is to put it between M2M and M2L -- since M2L is
-c          independent between levels, we can put NOWAIT for both P2T
-c          and M2L and synchronize before starting L2L
-c=============================================================================
-
-        if( ifevalloc .eq. 0 ) goto 3300
-
-         if (ifprint .ge. 1) 
-     $     call prinf('=== STEP 8 (direct) =====*',i,0)
-        t1=second()
-C$        t1=omp_get_wtime()
-c
-c       ... step 8, evaluate direct interactions 
-c
-
-c       SUNLI: Not task-based yet. Need to change omp do loop to
-c         omp single/section and omp task inside the loop
-c        [TASK-BASED]
-
-
-C$OMP SINGLE
-        do 3202 i=1,nboxes / CHUNK_SIZE_P2T
-          ibox_start = (i-1) * CHUNK_SIZE_P2T + 1
-C$OMP TASK DEFAULT(SHARED)
-C$OMP$FIRSTPRIVATE(ibox_start)
-
-          call P2T_task (ibox_start, CHUNK_SIZE_P2T, wlists,
-     $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
-     $     ifpot,pot,ifgrad,grad,ifhess,hess,
-     $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
-     $     ifhesstarg,hesstarg)
-C$OMP END TASK
-
- 3202   continue
-
-c     SUNLI: compute leftover
-
-        ibox_start2 = nboxes / CHUNK_SIZE_P2M * CHUNK_SIZE_P2M + 1
-        nCHUNK_LEFT = nboxes - ibox_start2  + 1
-
-c      print *, "ibox_start2 = ",ibox_start2
-c      print *, "nboxes = ",nboxes
-      
-C$OMP TASK DEFAULT(SHARED)
-C$OMP$FIRSTPRIVATE(ibox_start2)
-          call P2T_task (ibox_start2, nCHUNK_LEFT, wlists,
-     $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
-     $     ifpot,pot,ifgrad,grad,ifhess,hess,
-     $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
-     $     ifhesstarg,hesstarg)
-
-C$OMP END TASK
-
-C$OMP END SINGLE
-
-c
-ccc        call prin2('inside fmm, pot=*',pot,2*nsource)
-ccc        call prin2('inside fmm, grad=*',grad,2*nsource)
-ccc        call prin2('inside fmm, hess=*',hess,2*nsource)
-c
-c
-        t2=second()
-C$        t2=omp_get_wtime()
-ccc     call prin2('time=*',t2-t1,1)
-        timeinfo(8)=t2-t1
-c
- 3300   continue
-c
-ccc        call prinf('=== DOWNWARD PASS COMPLETE ===*',i,0)
 
 
 
