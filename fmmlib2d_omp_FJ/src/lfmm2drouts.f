@@ -609,6 +609,7 @@ C$OMP END PARALLEL
      $     CHUNK_SIZE_P2T, CHUNK_SIZE_M2M, CHUNK_SIZE_M2L,
      $     CHUNK_SIZE_P2M)
 
+
         implicit real *8 (a-h,o-z)
 c
         integer iaddr(2,*),laddr(2,*),nterms(0:*)
@@ -681,6 +682,7 @@ c=============================================================================
 
 
 
+        call prinf("nboxes = *",nboxes,1)
 
         if(ifprint .ge. 1) 
      $     call prinf('=== STEP 1 (form mp) ====*',i,0)
@@ -703,80 +705,58 @@ C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj)
 C$OMP$PRIVATE(ibox2)
 C$OMP$PRIVATE(gtemp)
 C$OMP$PRIVATE(tt)
-C$OMP$PRIVATE(ibox_start, nCHUNK_LEFT)
+C$OMP$PRIVATE(ibox_start, nCHUNK_LEFT, ibox_start2)
 
 
 
 
-C$OMP DO SCHEDULE(DYNAMIC, CHUNK_SIZE_P2M)
-        do 1200 ibox=1,nboxes
-c
-        call d2tgetb(ier,ibox,box,center0,corners0,wlists)
-        call d2tnkids(box,nkids)
-c
-        level=box(1)
-        if( level .lt. 2 ) goto 1200
-c
-c
-        if (ifprint .ge. 2) then
-           call prinf('ibox=*',ibox,1)
-           call prinf('box=*',box,15)
-           call prinf('nkids=*',nkids,1)
-        endif
-c
-        if (nkids .eq. 0) then
-c        ipts=box(9)
-c        npts=box(10)
-c        call prinf('ipts=*',ipts,1)
-c        call prinf('npts=*',npts,1)
-        npts=box(10)
-        if (ifprint .ge. 2) then
-           call prinf('npts=*',npts,1)
-           call prinf('isource=*',isource(box(9)),box(10))
-        endif
-        endif
-c
-c       ... prune all sourceless boxes
-c
-        if( box(10) .eq. 0 ) goto 1200
-c
-        if (nkids .eq. 0) then
-c
-c       ... form multipole expansions
-c
-	    radius = (corners0(1,1) - center0(1))**2
-	    radius = radius + (corners0(2,1) - center0(2))**2
-	    radius = sqrt(radius)
-c
-            call l2dzero(rmlexp(iaddr(1,ibox)),nterms(level))
-            if_use_trunc = 0
+C$OMP SINGLE
 
-            if( ifcharge .eq. 1 ) then
-            call l2dformmp(ier,scale(level),sourcesort(1,box(9)),
-     1  	chargesort(box(9)),npts,center0,nterms(level),
-     2          rmlexp(iaddr(1,ibox)))        
-            endif
-c 
-cc               call prin2('after formmp, rmlexp=*',
-cc     $            rmlexp(iaddr(1,ibox)),2*(2*nterms(level)+1))
-c
-            if (ifdipole .eq. 1 ) then
-               call l2dzero(mptemp,nterms(level))
-               call l2dformmp_dp(ier,scale(level),
-     $           sourcesort(1,box(9)),
-     1           dipstrsort(box(9)),
-     $           npts,center0,nterms(level),
-     2           mptemp)
-              call l2dadd(mptemp,rmlexp(iaddr(1,ibox)),nterms(level))
-            endif
-         endif
-c
+cccccC$OMP DO SCHEDULE(DYNAMIC)
+
+        do 1200 i=1,nboxes / CHUNK_SIZE_P2M
+
+          ibox_start = (i-1) * CHUNK_SIZE_P2M + 1
+c          call prinf("ibox_start = *", ibox_start,1)
+
+C$OMP TASK DEFAULT(SHARED)
+C$OMP$FIRSTPRIVATE(ibox_start)
+
+        call P2M_task (ibox_start, CHUNK_SIZE_P2M, wlists,
+     $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
+     $     rmlexp, scale, mptemp, lmptemp, iaddr, nterms)
+
+
+C$OMP END TASK
+
  1200    continue
-C$OMP END DO
+
+cccccC$OMP END DO
+
+        ibox_start2 = nboxes / CHUNK_SIZE_P2M * CHUNK_SIZE_P2M + 1
+        nCHUNK_LEFT = nboxes - ibox_start2  + 1
+
+c        print *, "P2M_ibox_start2 = ",ibox_start2
+c        print *, "finest level nboxes = ",nboxes
+
+c        go to 1300
+
+
+C$OMP TASK DEFAULT(SHARED)
+C$OMP$FIRSTPRIVATE(ibox_start2)
+        call P2M_task (ibox_start2, nCHUNK_LEFT, wlists,
+     $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
+     $     rmlexp, scale, mptemp, lmptemp, iaddr, nterms)
+
+C$OMP END TASK
+
+
  1300    continue
+C$OMP END SINGLE
 
 
 
+C$OMP BARRIER
 
 
 
@@ -928,8 +908,10 @@ c        [TASK-BASED]
 
 
 C$OMP SINGLE
-        do 3202 ibox_start=1,nboxes - CHUNK_SIZE_P2T,CHUNK_SIZE_P2T
+        do 3202 i=1,nboxes / CHUNK_SIZE_P2T
+          ibox_start = (i-1) * CHUNK_SIZE_P2T + 1
 C$OMP TASK DEFAULT(SHARED)
+C$OMP$FIRSTPRIVATE(ibox_start)
 
           call P2T_task (ibox_start, CHUNK_SIZE_P2T, wlists,
      $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
@@ -942,11 +924,15 @@ C$OMP END TASK
 
 c     SUNLI: compute leftover
 
-      print *, "ibox_start = ",ibox_start
-      print *, "nboxes = ",nboxes
-      nCHUNK_LEFT = nboxes - ibox_start  + 1
+        ibox_start2 = nboxes / CHUNK_SIZE_P2M * CHUNK_SIZE_P2M + 1
+        nCHUNK_LEFT = nboxes - ibox_start2  + 1
+
+c      print *, "ibox_start2 = ",ibox_start2
+c      print *, "nboxes = ",nboxes
+      
 C$OMP TASK DEFAULT(SHARED)
-          call P2T_task (ibox_start, nCHUNK_LEFT, wlists,
+C$OMP$FIRSTPRIVATE(ibox_start2)
+          call P2T_task (ibox_start2, nCHUNK_LEFT, wlists,
      $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
      $     ifpot,pot,ifgrad,grad,ifhess,hess,
      $     targetsort,ifpottarg,pottarg,ifgradtarg,gradtarg,
@@ -1509,6 +1495,8 @@ c
         integer box(15),box1(15)
 
 c 
+        ifprint = 0
+
         ibox_end = ibox_start + CHUNK_SIZE_P2T - 1
 
         do ibox2 = ibox_start, ibox_end
@@ -1579,3 +1567,112 @@ c
 
       return
       end
+
+
+      subroutine P2M_task
+     $    (ibox_start, CHUNK_SIZE_P2M,
+     $     wlists,
+     $     sourcesort, ifcharge,chargesort,ifdipole,dipstrsort,
+     $     rmlexp, scale, mptemp, lmptemp, iaddr, nterms)
+
+
+
+        implicit real *8 (a-h,o-z)
+c
+c
+        integer ibox_start, CHUNK_SIZE_P2M
+
+        real *8 wlists(*)
+
+        real *8 sourcesort(2,*)
+        complex *16 chargesort(*),dipstrsort(*)
+c
+        real *8 center0(2),corners0(2,4)
+        integer box(15)
+
+        integer level, lmptemp
+        real *8 radius
+        real *8 rmlexp(*), scale(0:*), mptemp(lmptemp)
+        integer iaddr(2,*), nterms(0:*)
+
+
+        ifprint = 0
+
+        ibox_end = ibox_start + CHUNK_SIZE_P2M - 1
+
+        do ibox = ibox_start, ibox_end
+
+
+c          print *, "inside ibox loop"
+
+        call d2tgetb(ier,ibox,box,center0,corners0,wlists)
+        call d2tnkids(box,nkids)
+c
+        level=box(1)
+        if( level .lt. 2 ) goto 9200
+c          print *, "level > 2"
+c
+c
+        if (ifprint .ge. 2) then
+           call prinf('ibox=*',ibox,1)
+           call prinf('box=*',box,15)
+           call prinf('nkids=*',nkids,1)
+        endif
+c
+        if (nkids .eq. 0) then
+c        ipts=box(9)
+c        npts=box(10)
+c        call prinf('ipts=*',ipts,1)
+c        call prinf('npts=*',npts,1)
+        npts=box(10)
+        if (ifprint .ge. 2) then
+           call prinf('npts=*',npts,1)
+           call prinf('isource=*',isource(box(9)),box(10))
+        endif
+        endif
+c
+c       ... prune all sourceless boxes
+c
+        if( box(10) .eq. 0 ) goto 9200
+c
+        if (nkids .eq. 0) then
+c
+c       ... form multipole expansions
+c
+	    radius = (corners0(1,1) - center0(1))**2
+	    radius = radius + (corners0(2,1) - center0(2))**2
+	    radius = sqrt(radius)
+c
+            call l2dzero(rmlexp(iaddr(1,ibox)),nterms(level))
+            if_use_trunc = 0
+
+            if( ifcharge .eq. 1 ) then
+            call l2dformmp(ier,scale(level),sourcesort(1,box(9)),
+     1  	chargesort(box(9)),npts,center0,nterms(level),
+     2          rmlexp(iaddr(1,ibox)))        
+            endif
+c 
+c               call prin2('after formmp, rmlexp=*',
+c     $            rmlexp(iaddr(1,ibox)),2*(2*nterms(level)+1))
+c
+            if (ifdipole .eq. 1 ) then
+               call l2dzero(mptemp,nterms(level))
+               call l2dformmp_dp(ier,scale(level),
+     $           sourcesort(1,box(9)),
+     1           dipstrsort(box(9)),
+     $           npts,center0,nterms(level),
+     2           mptemp)
+              call l2dadd(mptemp,rmlexp(iaddr(1,ibox)),nterms(level))
+            endif
+         endif
+c
+ 9200    continue
+
+        enddo !ibox
+c        call prin2('rmlexp = ',
+c     $    rmlexp(iaddr(1,ibox_start)),nterms(level))
+      
+
+        return
+
+        end

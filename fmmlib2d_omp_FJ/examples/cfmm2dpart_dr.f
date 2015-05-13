@@ -224,7 +224,7 @@ c
         call prin2('source=*',source,3*nsource)
         endif
 
-        ifprint=0
+        ifprint=1
         if (ifprint .eq. 1) then
         if( ifpot.eq.1 ) call prin2('after fmm, pot=*',pot,2*m)
         if( ifgrad.eq.1 ) call prin2('after fmm, grad=*',grad,2*m)
