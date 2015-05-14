@@ -716,7 +716,6 @@ c          independent between levels, we can put NOWAIT for both P2T
 c          and M2L and synchronize before starting L2L
 c=============================================================================
 
-        if( ifevalloc .eq. 0 ) goto 1030
 
          if (ifprint .ge. 1) 
      $     call prinf('=== STEP 8 (direct) =====*',i,0)
@@ -730,8 +729,9 @@ c       SUNLI: Not task-based yet. Need to change omp do loop to
 c         omp single/section and omp task inside the loop
 c        [TASK-BASED]
 
+C$OMP SECTIONS
 
-C$OMP SINGLE
+C$OMP SECTION
         do 1020 ichunk=1,nboxes / CHUNK_SIZE_P2T
           ibox_start = (ichunk-1) * CHUNK_SIZE_P2T + 1
 C$OMP TASK DEFAULT(SHARED)
@@ -764,7 +764,6 @@ C$OMP$FIRSTPRIVATE(ibox_start2)
 
 C$OMP END TASK
 
-C$OMP END SINGLE
 
 c
 ccc        call prin2('inside fmm, pot=*',pot,2*nsource)
@@ -777,7 +776,6 @@ C$        t2=omp_get_wtime()
 ccc     call prin2('time=*',t2-t1,1)
         timeinfo(8)=t2-t1
 c
- 1030   continue
 c
 ccc        call prinf('=== DOWNWARD PASS COMPLETE ===*',i,0)
 
@@ -793,7 +791,7 @@ c
 c
 c=======================================================================
 
-C$OMP SINGLE
+C$OMP SECTION
 
         do 1200 ichunk=1,nboxes / CHUNK_SIZE_P2M
 
@@ -829,9 +827,7 @@ C$OMP$FIRSTPRIVATE(ibox_start2)
 
 C$OMP END TASK
 
-
- 1300    continue
-C$OMP END SINGLE
+C$OMP TASKWAIT
 
 
 
@@ -851,8 +847,6 @@ c
          t1=second()
 c       ... step 3, merge all multipole expansions
 c       
-
-C$OMP SINGLE
 
          do 2300 ilev=nlev,3,-1
 c        print *, "ilev = ", ilev
@@ -1021,7 +1015,6 @@ C$OMP TASKWAIT
 
  2300    continue
 
-C$OMP END SINGLE
 
 c
 c
@@ -1076,7 +1069,6 @@ c
 
 
 
-C$OMP SINGLE
         do 4500 ilev=3,nlev+1
 c        t3=second()
 cC$        t3=omp_get_wtime()
@@ -1316,9 +1308,6 @@ ccc        write(*,*) 'speed:', ntops/(second()-t1)
  4500   continue
 
 
-C$OMP END SINGLE
-
-
 
 
 C$OMP TASKWAIT
@@ -1340,7 +1329,6 @@ c       ... step 5, split all local expansions
 c
 ccc        do 5200 ibox=1,nboxes
 
-C$OMP SINGLE
         do 5500 ilev=3,nlev
 
         do 5200 ichunk=1,laddr(2,ilev)/CHUNK_SIZE_M2M
@@ -1499,16 +1487,14 @@ C$OMP TASKWAIT
  5500   continue
 
 
-C$OMP END SINGLE
 
-c       
         t2=second()
 C$        t2=omp_get_wtime()
 ccc     call prin2('time=*',t2-t1,1)
         timeinfo(5)=t2-t1
 
 
-c
+C$OMP END SECTIONS
 
 C$OMP END PARALLEL
 
