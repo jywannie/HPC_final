@@ -1232,17 +1232,22 @@ c
 c       ... step 5, split all local expansions
 c
 ccc        do 5200 ibox=1,nboxes
-        do 5300 ilev=3,nlev
 
+C$OMP SINGLE
+        do 5500 ilev=3,nlev
 
+        do 5200 ichunk=1,laddr(2,ilev)/CHUNK_SIZE_M2M
 
+C$OMP TASK DEFAULT(SHARED)
+C$OMP$FIRSTPRIVATE(ichunk,ilev)
+C$OMP$PRIVATE(ibox_start, ibox_end, ier, ibox, box, center0, corners0)
+C$OMP$PRIVATE(nkids, level0, radius, i, jbox, box1, center1, corners1)
+C$OMP$PRIVATE(level1, mptemp)
 
-C$OMP DO SCHEDULE(DYNAMIC, CHUNK_SIZE_M2M)
-
-
-
-cccC$OMP$NUM_THREADS(4) 
-        do 5200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
+        ibox_start = (ichunk - 1) * CHUNK_SIZE_M2M + laddr(1,ilev)
+        ibox_end = ibox_start + CHUNK_SIZE_M2M - 1
+        
+        do 5150 ibox = ibox_start, ibox_end
 c
         call d2tgetb(ier,ibox,box,center0,corners0,wlists)
         call d2tnkids(box,nkids)
@@ -1299,9 +1304,96 @@ c
                endif
             endif
         endif
+
+ 5150   continue
+
+C$OMP END TASK
+
  5200   continue
-C$OMP END DO
- 5300   continue
+
+
+
+C$OMP TASK DEFAULT(SHARED)
+C$OMP$FIRSTPRIVATE(ilev)
+C$OMP$PRIVATE(ibox_start2, ibox_end2, ier, ibox, box, center0, corners0)
+C$OMP$PRIVATE(nkids, level0, radius, i, jbox, box1, center1, corners1)
+C$OMP$PRIVATE(level1, mptemp)
+
+
+        ibox_start2 = laddr(2,ilev) / CHUNK_SIZE_M2M * CHUNK_SIZE_M2M
+        ibox_start2 = ibox_start2 + laddr(1,ilev)
+        ibox_end2 = laddr(1,ilev)+laddr(2,ilev)-1
+
+        
+        do 5450 ibox = ibox_start2, ibox_end2
+c
+        call d2tgetb(ier,ibox,box,center0,corners0,wlists)
+        call d2tnkids(box,nkids)
+c       
+        if (nkids .ne. 0) then
+            level0=box(1)
+            if (level0 .ge. 2) then
+               if (ifprint .ge. 2) then
+                  call prinf('ibox=*',ibox,1)
+                  call prinf('box=*',box,15)
+                  call prinf('nkids=*',nkids,1)
+                  call prin2('center0=*',center0,2)
+               endif
+c
+c       ... split local expansion of the parent box
+c
+               do 5300 i = 1,4
+	          jbox = box(4+i)
+	          if (jbox.eq.0) goto 5300
+                  call d2tgetb(ier,jbox,box1,center1,corners1,wlists)
+                  radius = (corners1(1,1) - center1(1))**2
+                  radius = radius + (corners1(2,1) - center1(2))**2
+                  radius = sqrt(radius)
+                  if (ifprint .ge. 2) then
+                     call prinf('jbox=*',jbox,1)
+                     call prin2('radius=*',radius,1)
+                     call prin2('center1=*',center1,2)
+                  endif
+                  level1=box1(1)
+                  if( nterms(level0)+nterms(level1) .gt. 95 ) then
+                  call l2dlocloc(scale(level0),center0,
+     1               rmlexp(iaddr(2,ibox)),nterms(level0),
+     1               scale(level1),center1,mptemp,nterms(level1))
+                  else
+                  call l2dlocloc_carray(scale(level0),center0,
+     1               rmlexp(iaddr(2,ibox)),nterms(level0),
+     1               scale(level1),center1,mptemp,nterms(level1),
+     1               carray,ldc)
+                  endif
+                  call l2dadd(mptemp,rmlexp(iaddr(2,jbox)),
+     1   	       nterms(level1))
+ 5300          continue
+               if (ifprint .ge. 2) call prinf('=============*',x,0)
+            endif
+        endif
+c
+        if (nkids .ne. 0) then
+            level=box(1)
+            if (level .ge. 2) then
+               if( ifprint .ge. 2 ) then
+                  call prinf('ibox=*',ibox,1)
+                  call prinf('box=*',box,15)
+                  call prinf('nkids=*',nkids,1)
+               endif
+            endif
+        endif
+
+ 5450   continue
+
+C$OMP END TASK
+
+C$OMP TASKWAIT
+
+ 5500   continue
+
+
+C$OMP END SINGLE
+
 c       
         t2=second()
 C$        t2=omp_get_wtime()
