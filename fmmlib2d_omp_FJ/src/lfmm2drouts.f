@@ -705,8 +705,8 @@ C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj)
 C$OMP$PRIVATE(ibox2)
 C$OMP$PRIVATE(gtemp)
 C$OMP$PRIVATE(tt)
-C$OMP$PRIVATE(ibox_start, nCHUNK_LEFT, ibox_start2,ichunk)
-
+C$OMP$PRIVATE(ibox_start,ibox_end,nCHUNK_LEFT)
+C$OMP$PRIVATE(ibox_start2,ibox_end2, ichunk)
 
 c=============================================================================
 c   SUNLI: Put P2T computation here: since it is independent to any
@@ -783,6 +783,16 @@ ccc        call prinf('=== DOWNWARD PASS COMPLETE ===*',i,0)
 
 
 
+
+
+c=======================================================================
+c     P2M
+c
+c
+c
+c
+c=======================================================================
+
 C$OMP SINGLE
 
         do 1200 ichunk=1,nboxes / CHUNK_SIZE_P2M
@@ -825,6 +835,13 @@ C$OMP END SINGLE
 
 
 
+c=======================================================================
+c     M2M
+c
+c
+c
+c
+c=======================================================================
 
 
 
@@ -835,20 +852,33 @@ c
 c       ... step 3, merge all multipole expansions
 c       
 
+C$OMP SINGLE
+
          do 2300 ilev=nlev,3,-1
+c        print *, "ilev = ", ilev
+
+         do 2200 ichunk = 1,laddr(2,ilev)/CHUNK_SIZE_M2M
+
+C$OMP TASK DEFAULT(SHARED)
+C$OMP$FIRSTPRIVATE(ichunk,ilev)
+C$OMP$PRIVATE(ibox_start, ibox_end, ier, ibox, box, center0, corners0)
+C$OMP$PRIVATE(nkids, level0, radius, i, jbox, box1, center1, corners1)
+C$OMP$PRIVATE(level1, mptemp)
+
+           ibox_start = (ichunk - 1) * CHUNK_SIZE_M2M + laddr(1,ilev)
+           ibox_end = ibox_start + CHUNK_SIZE_M2M - 1
+c        print *, "ibox_start = ", ibox_start
+c        print *, "ibox_end = ", ibox_end
 
 
-C$OMP DO SCHEDULE(DYNAMIC, CHUNK_SIZE_M2M)
-
-
-         do 2200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
+           do 2150 ibox = ibox_start, ibox_end
 c
          call d2tgetb(ier,ibox,box,center0,corners0,wlists)
          call d2tnkids(box,nkids)
 c
 c       ... prune all sourceless boxes
 c
-         if( box(10) .eq. 0 ) goto 2200
+         if( box(10) .eq. 0 ) goto 2150
 c
          if (nkids .ne. 0) then
 c
@@ -882,7 +912,6 @@ c
                call prin2('center1=*',center1,2)
                endif
                level1=box1(1)
-c       SUNLI: DON'T UNDERSTAND THIS
                if( nterms(level0)+nterms(level1) .gt. 95 ) then
                call l2dmpmp(scale(level1),center1,
      1            rmlexp(iaddr(1,jbox)),nterms(level1),scale(level0),
@@ -902,14 +931,97 @@ c       ... mark the local expansion of all kids and the parent
 c
             endif
          endif
+ 2150    continue
+
+C$OMP END TASK
+
  2200    continue
 
 
-C$OMP END DO
 
 
+C$OMP TASK DEFAULT(SHARED)
+C$OMP$FIRSTPRIVATE(ilev)
+C$OMP$PRIVATE(ibox_start2, ibox_end2, ier, ibox, box, center0, corners0)
+C$OMP$PRIVATE(nkids, level0, radius, i, jbox, box1, center1, corners1)
+C$OMP$PRIVATE(level1, mptemp)
+
+        ibox_start2 = laddr(2,ilev) / CHUNK_SIZE_M2M * CHUNK_SIZE_M2M
+        ibox_start2 = ibox_start2 + laddr(1,ilev)
+        ibox_end2 = laddr(1,ilev)+laddr(2,ilev)-1
+        
+c        print *, "ibox_start2 = ", ibox_start2
+c        print *, "ibox_end2 = ", ibox_end2
+
+           do 2250 ibox = ibox_start2, ibox_end2
+c
+         call d2tgetb(ier,ibox,box,center0,corners0,wlists)
+         call d2tnkids(box,nkids)
+c
+c       ... prune all sourceless boxes
+c
+         if( box(10) .eq. 0 ) goto 2250
+c
+         if (nkids .ne. 0) then
+c
+         level0=box(1)
+         if( level0 .ge. 2 ) then
+ccc         if (level0 .ge. 0) then
+            radius = (corners0(1,1) - center0(1))**2
+            radius = radius + (corners0(2,1) - center0(2))**2
+            radius = sqrt(radius)
+c       
+            if( ifprint .ge. 2 ) then
+               call prin2('radius=*',radius,1)
+               call prinf('ibox=*',ibox,1)
+               call prinf('box=*',box,15)
+               call prinf('nkids=*',nkids,1)
+            endif
+c
+c       ... merge multipole expansions of the kids 
+c
+            call l2dzero(rmlexp(iaddr(1,ibox)),nterms(level0))
+            if (ifprint .ge. 2) then
+               call prin2('center0=*',center0,2)
+            endif
+c
+            do 2220 i = 1,4
+               jbox = box(4+i)
+               if (jbox.eq.0) goto 2220
+               call d2tgetb(ier,jbox,box1,center1,corners1,wlists)
+               if (ifprint .ge. 2) then
+               call prinf('jbox=*',jbox,1)
+               call prin2('center1=*',center1,2)
+               endif
+               level1=box1(1)
+               if( nterms(level0)+nterms(level1) .gt. 95 ) then
+               call l2dmpmp(scale(level1),center1,
+     1            rmlexp(iaddr(1,jbox)),nterms(level1),scale(level0),
+     1            center0,mptemp,nterms(level0))
+               else
+               call l2dmpmp_carray(scale(level1),center1,
+     1            rmlexp(iaddr(1,jbox)),nterms(level1),scale(level0),
+     1            center0,mptemp,nterms(level0),carray,ldc)
+               endif
+               call l2dadd(mptemp,rmlexp(iaddr(1,ibox)),
+     1            nterms(level0))
+ 2220       continue
+            if (ifprint .ge. 2) then
+            call prinf('=============*',x,0)
+            endif
+c       ... mark the local expansion of all kids and the parent
+c
+            endif
+         endif
+ 2250    continue
+
+C$OMP END TASK
+
+C$OMP TASKWAIT
 
  2300    continue
+
+C$OMP END SINGLE
 
 c
 c
