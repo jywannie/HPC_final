@@ -170,12 +170,11 @@ c
       read (arg, *) CHUNK_SIZE_P2M       
       endif
 
-
-      print *, 'nsource = ',nsource
-      print *, 'CHUNK_SIZE_P2T = ',CHUNK_SIZE_P2T
-      print *, 'CHUNK_SIZE_M2M = ',CHUNK_SIZE_M2M
-      print *, 'CHUNK_SIZE_M2L = ',CHUNK_SIZE_M2L
-      print *, 'CHUNK_SIZE_P2M = ',CHUNK_SIZE_P2M
+      call prinf ('nsource = *' ,nsource, 1)
+      call prinf('CHUNK_SIZE_P2T = *' ,CHUNK_SIZE_P2T, 1)
+      call prinf('CHUNK_SIZE_M2M = *' ,CHUNK_SIZE_M2M, 1)
+      call prinf('CHUNK_SIZE_M2L = *' ,CHUNK_SIZE_M2L, 1)
+      call prinf('CHUNK_SIZE_P2M = *' ,CHUNK_SIZE_P2M, 1)
 
 
 
